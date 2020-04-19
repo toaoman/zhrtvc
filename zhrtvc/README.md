@@ -2,12 +2,100 @@
 
 ## 版本控制
 
-### v1.1.1
+### v1.1.2
 - 语音和频谱的处理使用工具包：aukit，用pip install aukit即可。
-- 文本和音素的处理使用工具包：phkit，用pip installphkit即可。
+- 文本和音素的处理使用工具包：phkit，用pip install phkit即可。
 - 提供预训练好的encoder、synthesizer、vocoder模型和语音样例。
 - 工具盒toolbox界面的Dataset的Random按钮是随机选择文本，而非选择数据集。选择数据集需要手动下拉框选择。
 - 预训练的synthesizer模型用ali句子的dataset训练的，用alijuzi的dataset的语音做参考音频效果较好。
+- 重整模型和数据的目录结构，提供可训练的样例。
+
+
+## 使用指引
+主要做synthesizer的部分，encoder和vocoder都用publish的模型。
+
+### 训练
+
+1. 处理语料，生成用于训练synthesizer的数据。
+
+```markdown
+python synthesizer_preprocess_audio.py
+# 可带参数
+```
+
+```markdown
+python synthesizer_preprocess_embeds.py
+# 可带参数
+```
+
+- **语料格式**
+
+```markdown
+|--datasets_root
+   |--dataset1
+      |--audio_dir1
+      |--audio_dir2
+      |--metadata.csv
+   |--dataset2
+```
+
+- **metadata.csv**
+
+一行描述一个音频文件。
+
+每一行的数据格式：
+
+```markdown
+音频文件相对路径\t文本内容\n
+```
+
+
+- 例如：
+
+```markdown
+aishell/S0093/BAC009S0093W0368.mp3  有 着 对 美 和 品质 感 执着 的 追求
+```
+
+- 注意：
+
+文本可以是汉字、拼音，汉字可以是分词后的汉字序列。
+
+2. 训练模型，用处理好的数据训练synthesizer的模型。
+
+```markdown
+python synthesizer_train.py
+# 可带参数
+```
+
+- **语料格式**
+
+```markdown
+|--synthesizer
+   |--embeds
+   |--mels
+   |--train.txt
+```
+
+- **train.txt**
+
+一行描述一个训练样本。
+
+每一行的数据格式：
+
+```markdown
+音频文件路径|mel文件路径|embed文件路径|音频帧数|mel帧数|文本
+```
+
+- 例如：
+```markdown
+../data/samples/aishell/S0093/BAC009S0093W0368.mp3|mel-aishell-S0093-BAC009S0093W0368.mp3.npy|embed-aishell-S0093-BAC009S0093W0368.mp3.npy|54656|216|有 着 对 美 和 品质 感 执着 的 追求
+```
+
+- 注意
+
+mel文件路径和embed文件路径可以是相对路径（相对于train.txt所在文件夹），也可以是绝对路径。
+
+如果多个数据一起用，可以用绝对路径表示，汇总到一个train.txt文件，便于训练。
 
 
 ## 参考项目

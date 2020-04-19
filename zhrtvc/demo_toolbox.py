@@ -24,14 +24,14 @@ if __name__ == '__main__':
         "supported datasets. You can add your own data by created a directory named UserAudio "
         "in your datasets root. Supported formats are mp3, flac, wav and m4a. Each speaker should "
         "be inside a directory, e.g. <datasets_root>/UserAudio/speaker_01/audio_01.wav.",
-                        default=r"../logs/data/samples")
-    parser.add_argument("-e", "--enc_models_dir", type=Path, default="../logs/encoder/saved_models",
+                        default=r"../models/data/samples")
+    parser.add_argument("-e", "--enc_models_dir", type=Path, default="../models/encoder/saved_models",
                         help="Directory containing saved encoder models")
-    parser.add_argument("-s", "--syn_models_dir", type=Path, default="../logs/synthesizer/saved_models",
+    parser.add_argument("-s", "--syn_models_dir", type=Path, default="../models/synthesizer/saved_models",
                         help="Directory containing saved synthesizer models")
-    parser.add_argument("-v", "--voc_models_dir", type=Path, default="../logs/vocoder/saved_models",
+    parser.add_argument("-v", "--voc_models_dir", type=Path, default="../models/vocoder/saved_models",
                         help="Directory containing saved vocoder models")
-    parser.add_argument("-t", "--toolbox_files_dir", type=Path, default="../logs/toolbox/saved_files",
+    parser.add_argument("-t", "--toolbox_files_dir", type=Path, default="../models/toolbox/saved_files",
                         help="Directory containing saved toolbox files")
     parser.add_argument("--low_mem", action="store_true", help= \
         "If True, the memory used by the synthesizer will be freed after each use. Adds large "

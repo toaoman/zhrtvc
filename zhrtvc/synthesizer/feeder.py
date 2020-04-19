@@ -32,15 +32,33 @@ class Feeder:
         self.encoder_path = Path(hparams.encoder_path)
         self._coord = coordinator
         self._hparams = hparams
-        self._cleaner_names = "ascii_cleaners".split(",")  # [x.strip() for x in hparams.cleaners.split(",")]
+        self._cleaner_names = hparams.cleaners
         self._train_offset = 0
         self._test_offset = 0
 
         # Load metadata
+        self._audio_dir = os.path.join(os.path.dirname(metadata_filename), "audio")
         self._mel_dir = os.path.join(os.path.dirname(metadata_filename), "mels")
         self._embed_dir = os.path.join(os.path.dirname(metadata_filename), "embeds")
-        with open(metadata_filename, encoding="utf8") as f:
-            self._metadata = [line.strip().split("|") for line in tqdm(f, ncols=50, mininterval=2)]
+        with open(metadata_filename, encoding="utf8") as fin:
+            self._metadata = []
+            for line in tqdm(fin, ncols=50, mininterval=2):
+                # 支持相对路径和绝对路径
+                # ../data/samples/aliaudio/Aibao/005397.mp3|mel-aliaudio-Aibao-005397.mp3.npy|embed-aliaudio-Aibao-005397.mp3.npy|64403|254|他走近钢琴并开始演奏“祖国从哪里开始”。
+                audio_path, mel_path, embed_path, audio_size, mel_size, text = line.strip().split("|")
+                if not os.path.exists(audio_path):
+                    audio_path = os.path.join(self._audio_dir, audio_path)
+                if not os.path.exists(mel_path):
+                    mel_path = os.path.join(self._mel_dir, mel_path)
+                if not os.path.exists(embed_path):
+                    embed_path = os.path.join(self._embed_dir, embed_path)
+
+                if os.path.exists(audio_path) and os.path.exists(mel_path) and os.path.exists(embed_path):
+                    self._metadata.append([audio_path, mel_path, embed_path, audio_size, mel_size, text])
+                else:
+                    print("Load data failed!")
+                    print("data:", line)
+
             frame_shift_ms = hparams.hop_size / hparams.sample_rate
             hours = sum([int(x[4]) for x in self._metadata]) * frame_shift_ms / (3600)
             log("Loaded metadata for {} examples ({:.2f} hours)".format(len(self._metadata), hours))
@@ -204,7 +222,7 @@ class Feeder:
 
     def get_example(self, meta):
         text = meta[5]
-        input_data = np.asarray(text_to_sequence(text), dtype=np.int32)
+        input_data = np.asarray(text_to_sequence(text, self._cleaner_names), dtype=np.int32)
         mel_target = np.load(meta[1])
         token_target = np.zeros(len(mel_target) - 1)  # np.asarray([0.] * (len(mel_target) - 1))
         embed_target = np.load(meta[2])

@@ -192,11 +192,8 @@ class Toolbox:
             self.ui.log("Loading the synthesizer %s" % self.synthesizer.checkpoint_fpath)
 
         ptext = self.ui.text_prompt.toPlainText()
-        # if ptext.startswith("py"):  # 适用于sync2，适应训练时候用pinyin+chinese_cleaners的bug
-        #     ptext = get_pinyin(ptext[2:])  # 把chinese_cleaners的lowercase用起来，否则不能合成。
-        ptext = " ".join(text2pinyin(ptext))
         texts = ptext.split("\n")
-        print(dict(texts=texts))
+
         embed = self.ui.selected_utterance.embed
         embeds = np.stack([embed] * len(texts))
         specs = self.synthesizer.synthesize_spectrograms(texts, embeds)

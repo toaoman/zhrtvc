@@ -3,7 +3,7 @@ from tensorflow.contrib.training import HParams
 one = 64
 # Default hyperparameters
 hparams = HParams(
-    encoder_path=r"../encoder\saved_models\pretrained.pt",
+    encoder_path=r"../models/encoder/saved_models/ge2e_pretrained.pt",
     # Comma-separated list of cleaners to run on text prior to training and eval. For non-English
     # text, you may want to use "basic_cleaners" or "transliteration_cleaners".
     cleaners="chinese_cleaners",

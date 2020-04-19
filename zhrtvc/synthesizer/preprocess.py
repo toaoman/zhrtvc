@@ -80,7 +80,7 @@ def preprocess_user(datasets_root: Path, out_dir: Path, n_processes: int,
 
     # Create the output directories for each output file type
     out_dir.joinpath("mels").mkdir(exist_ok=True)
-    out_dir.joinpath("audio").mkdir(exist_ok=True)
+    # out_dir.joinpath("audio").mkdir(exist_ok=True)
 
     for onedir in input_dirs:
         preprocess_speaker_user(onedir, out_dir=out_dir, skip_existing=skip_existing, hparams=hparams,
@@ -130,14 +130,15 @@ def preprocess_speaker_user(speaker_dir, out_dir: Path, skip_existing: bool, hpa
 
 def preprocess_utterance_user(line, speaker_dir, out_dir: Path, skip_existing: bool, hparams):
     fname, text = line
-    wav_fpath = speaker_dir.joinpath('wavs', fname + ".wav")
+    wav_fpath = speaker_dir.joinpath(fname)
     try:
         assert wav_fpath.exists()
         fname = fname.replace('/', '-')
         one_metadata = process_utterance(wav_fpath, text, out_dir, fname, skip_existing, hparams)
     except Exception as e:
-        print(line)
-        print(e)
+        print("wav_fpath:", wav_fpath)
+        print("data:", line)
+        print("error:", e)
         return None
     return one_metadata
 
@@ -294,9 +295,9 @@ def embed_utterance(fpaths, encoder_model_fpath, hparams):
 
 
 def create_embeddings(synthesizer_root: Path, encoder_model_fpath: Path, n_processes: int, hparams):
-    wav_dir = synthesizer_root.joinpath("audio")
+    # wav_dir = synthesizer_root.joinpath("audio")
     metadata_fpath = synthesizer_root.joinpath("train.txt")
-    assert wav_dir.exists() and metadata_fpath.exists()
+    assert metadata_fpath.exists()
     embed_dir = synthesizer_root.joinpath("embeds")
     embed_dir.mkdir(exist_ok=True)
 

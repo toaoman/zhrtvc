@@ -13,3 +13,5 @@ inflect
 # PyQt5
 numba
 pypinyin
+aukit
+phkit

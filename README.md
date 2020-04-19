@@ -1,27 +1,43 @@
 # zhrtvc
 Chinese Real Time Voice Cloning
 
+### 版本
+
+v1.1.2
+
+详见[readme](zhrtvc/README.md)
+
+
 ### 目录介绍
 
 #### zhrtvc
-代码模块，包括模型训练，模型展示模块。
+代码，包括encoder、synthesizer、vocoder、toolbox模块，包括模型训练的模块和可视化合成语音的模块。
 
-#### logs
-模型和参考音频，预训练的模型在百度网盘下载，下载后解压到当前文件夹即可。
+执行脚本需要进入zhrtvc目录操作。
 
-[logs](https://pan.baidu.com/s/10ktwqngU9I5OqS78mMn4Dw )
-
-提取码：3dhh 
+代码相关的说明详见zhrtvc目录下的[readme](zhrtvc/README.md)文件。
 
 
-#### pretrained
-预训练好的模型，包括encoder,synthesizer,vocoder模型。
+#### models
+预训练的模型，包括encoder、synthesizer、vocoder的模型。
 
-#### article
-相关文献。
+预训练的模型在百度网盘下载，下载后解压，替换models文件夹即可。
 
-#### sample
-数据样本。
+链接：https://pan.baidu.com/s/14hmJW7sY5PYYcCFAbqV0Kw 
+
+提取码：zl9i
+
+
+#### data
+语料样例，包括语音和文本对齐语料，处理好的用于训练synthesizer的数据样例。
+
+可以直接执行`synthesizer_preprocess_audio.py`和`synthesizer_preprocess_embeds.py`把samples的语音文本对齐语料转为SV2TTS的用于训练synthesizer的数据。
+
+语料样例在百度网盘下载，下载后解压，替换data文件夹即可。
+
+链接：https://pan.baidu.com/s/1Q_WUrmb7MW_6zQSPqhX9Vw 
+
+提取码：bivr
 
 
 ### Real-Time Voice Cloning
