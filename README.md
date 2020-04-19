@@ -6,6 +6,14 @@ Chinese Real Time Voice Cloning
 #### zhrtvc
 代码模块，包括模型训练，模型展示模块。
 
+#### logs
+模型和参考音频，预训练的模型在百度网盘下载，下载后解压到当前文件夹即可。
+
+[logs](https://pan.baidu.com/s/10ktwqngU9I5OqS78mMn4Dw )
+
+提取码：3dhh 
+
+
 #### pretrained
 预训练好的模型，包括encoder,synthesizer,vocoder模型。
 
