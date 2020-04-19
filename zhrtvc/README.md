@@ -1,29 +1,18 @@
 # 中文语音克隆
 
-## todo list
-1. 英文字母。
-    - 数据来源自讯飞、阿里等语音合成接口，英文版语音克隆。
-    - 语音合成包括纯字母和中文与字母混合。
+## 版本控制
 
-2. 常见英文。
-    - 数据来源自讯飞、阿里等语音合成接口，英文版语音克隆。
-    - 讯飞语音合成包括纯英文和中文与英文混合。
-
-3. toolbox开发web版。
-
-4. 部署CPU版。
-
-5. 字词。
-    - 单个字，短词。
-    - 数据来源语音合成接口。
-
-6. 去除噪声。
-    - 训练语料去除噪声。
-    - 合成的语音去除噪声。
-    - 合成的语音不好，频谱平滑，原因是训练语料有背景噪声，噪声表现在频谱上为随机散点，模型则只能学习到平滑的效果。
+### v1.1.1
+- 语音和频谱的处理使用工具包：aukit，用pip install aukit即可。
+- 文本和音素的处理使用工具包：phkit，用pip installphkit即可。
+- 提供预训练好的encoder、synthesizer、vocoder模型和语音样例。
+- 工具盒toolbox界面的Dataset的Random按钮是随机选择文本，而非选择数据集。选择数据集需要手动下拉框选择。
+- 预训练的synthesizer模型用ali句子的dataset训练的，用alijuzi的dataset的语音做参考音频效果较好。
 
 
-# Real-Time Voice Cloning
+## 参考项目
+
+- **Real-Time Voice Cloning**
 This repository is an implementation of [Transfer Learning from Speaker Verification to
 Multispeaker Text-To-Speech Synthesis](https://arxiv.org/pdf/1806.04558.pdf) (SV2TTS) with a vocoder that works in real-time. Feel free to check [my thesis](https://matheo.uliege.be/handle/2268.2/6801) if you're curious or if you're looking for info I haven't documented yet (don't hesitate to make an issue for that too). Mostly I would recommend giving a quick look to the figures beyond the introduction.
 

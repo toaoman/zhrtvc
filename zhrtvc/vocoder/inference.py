@@ -2,12 +2,14 @@ from vocoder.models.fatchord_version import WaveRNN
 from vocoder import hparams as hp
 import torch
 
+_model = None  # type: WaveRNN
+# _device = torch.device('cpu')  # None # type: torch.device
+_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-_model = None   # type: WaveRNN
 
 def load_model(weights_fpath, verbose=True):
-    global _model
-    
+    global _model, _device
+
     if verbose:
         print("Building Wave-RNN")
     _model = WaveRNN(
@@ -23,11 +25,11 @@ def load_model(weights_fpath, verbose=True):
         hop_length=hp.hop_length,
         sample_rate=hp.sample_rate,
         mode=hp.voc_mode
-    ).cuda()
-    
+    ).to(_device)
+
     if verbose:
         print("Loading model weights at %s" % weights_fpath)
-    checkpoint = torch.load(weights_fpath)
+    checkpoint = torch.load(weights_fpath, map_location=_device.type)
     _model.load_state_dict(checkpoint['model_state'])
     _model.eval()
 
@@ -36,7 +38,7 @@ def is_loaded():
     return _model is not None
 
 
-def infer_waveform(mel, normalize=True,  batched=True, target=8000, overlap=800, 
+def infer_waveform(mel, normalize=True, batched=True, target=8000, overlap=800,
                    progress_callback=None):
     """
     Infers the waveform of a mel spectrogram output by the synthesizer (the format must match 
@@ -50,7 +52,7 @@ def infer_waveform(mel, normalize=True,  batched=True, target=8000, overlap=800,
     """
     if _model is None:
         raise Exception("Please load Wave-RNN in memory before using it")
-    
+
     if normalize:
         mel = mel / hp.mel_max_abs_value
     mel = torch.from_numpy(mel[None, ...])

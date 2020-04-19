@@ -2,6 +2,7 @@ from toolbox.ui import UI
 from encoder import inference as encoder
 from synthesizer.inference import Synthesizer
 from vocoder import inference as vocoder
+from melgan import inference as vocoder_melgan
 from pathlib import Path
 from time import perf_counter as timer
 from toolbox.utterance import Utterance
@@ -17,31 +18,10 @@ from tools.spec_processor import find_start_end_points
 from .sentence import xinqing_texts
 
 # Use this directory structure for your datasets, or modify it to fit your needs
-recognized_datasets = [
-    r'aliaudio\samples',
-    r'stcmds\stcmds\wavs',
-    r"aishell\aishell\wavs",
-    r"xunfei",
-    r"biaobei",
-    r"fansen\audio",
-    r"record",
-    r"librispeech\LibriSpeech\test-clean\LibriSpeech\test-clean",
-]
 
 filename_formatter_re = re.compile(r'[\s\\/:*?"<>|\']+')
-filename_formatter = lambda x: filename_formatter_re.sub('_', x)[:100]
-
-eval_texts = """我家朵朵是世界上最漂亮的朵朵。
-知道自己是什么样的人
-要做什么
-无需活在别人非议或期待里
-你勤奋充电努力工作
-对人微笑
-是为了扮靓自己照亮自己的心
-告诉自己
-我是一股独立向上的力量
-一个人的自愈的能力越强
-才越有可能接近幸福""".split("\n")
+filename_formatter = lambda x: filename_formatter_re.sub('_', x)[:70]
+time_formatter = lambda: time.strftime("%Y%m%d-%H%M%S")
 
 total_texts = xinqing_texts
 
@@ -54,6 +34,8 @@ class Toolbox:
         self.make_out_dirs()
 
         self.datasets_root = datasets_root
+        self.datasets = [p.name for p in Path(datasets_root).glob("*") if p.is_dir()]
+
         self.low_mem = low_mem
         self.utterances = set()
         self.current_generated = (None, None, None, None)  # speaker_name, spec, breaks, wav
@@ -89,7 +71,7 @@ class Toolbox:
         # Dataset, speaker and utterance selection
         self.ui.browser_load_button.clicked.connect(lambda: self.load_from_browser())
         random_func = lambda level: lambda: self.ui.populate_browser(self.datasets_root,
-                                                                     recognized_datasets,
+                                                                     self.datasets,
                                                                      level)
         text_func = lambda: self.ui.text_prompt.setPlainText(np.random.choice(total_texts, 1)[0])
         self.ui.random_dataset_button.clicked.connect(text_func)
@@ -127,7 +109,7 @@ class Toolbox:
         self.ui.clear_button.clicked.connect(self.clear_utterances)
 
     def reset_ui(self, encoder_models_dir, synthesizer_models_dir, vocoder_models_dir):
-        self.ui.populate_browser(self.datasets_root, recognized_datasets, 0, True)
+        self.ui.populate_browser(self.datasets_root, self.datasets, 0, True)
         self.ui.populate_models(encoder_models_dir, synthesizer_models_dir, vocoder_models_dir)
 
     def load_from_browser(self, fpath=None):
@@ -166,7 +148,7 @@ class Toolbox:
         self.ui.play(wav, encoder.sampling_rate)
 
         speaker_name = "user01"
-        name = speaker_name + "_rec_%d" % int(time.time())
+        name = speaker_name + "_rec_{}".format(time_formatter())
         audio.save_wav(wav, self._out_record_dir.joinpath(name + '.wav'), encoder.sampling_rate)  # save
 
         self.add_real_utterance(wav, name, speaker_name)
@@ -204,7 +186,7 @@ class Toolbox:
         # Synthesize the spectrogram
         if self.synthesizer is None:
             model_dir = self.ui.current_synthesizer_model_dir
-            checkpoints_dir = model_dir.joinpath("taco_pretrained")
+            checkpoints_dir = model_dir.joinpath("checkpoints")
             self.synthesizer = Synthesizer(checkpoints_dir, low_mem=self.low_mem)
         if not self.synthesizer.is_loaded():
             self.ui.log("Loading the synthesizer %s" % self.synthesizer.checkpoint_fpath)
@@ -231,7 +213,7 @@ class Toolbox:
 
         fref = '-'.join([self.ui.current_dataset_name, self.ui.current_speaker_name, self.ui.current_utterance_name])
         ftext = '。'.join(texts)
-        ftime = '{}'.format(int(time.time()))
+        ftime = '{}'.format(time_formatter())
         fname = filename_formatter('{}_{}_{}zi_{}.npy'.format(fref, ftime, len(ftext), ftext))
         np.save(self._out_mel_dir.joinpath(fname), spec, allow_pickle=False)  # save
 
@@ -254,10 +236,18 @@ class Toolbox:
             self.ui.log(line, "overwrite")
             self.ui.set_loading(i, seq_len)
 
+        wav = None
         if self.ui.current_vocoder_fpath is not None:
-            self.ui.log("")
-            wav = vocoder.infer_waveform(spec, progress_callback=vocoder_progress)
-        else:
+            model_fpath = self.ui.current_vocoder_fpath
+            if Path(model_fpath).parent.stem == "melgan":
+                self.ui.log("Waveform generation with MelGAN... ")
+                wav = vocoder_melgan.infer_waveform_melgan(spec, model_fpath)
+
+            elif Path(model_fpath).parent.stem == "wavernn":
+                self.ui.log("Waveform generation with WaveRNN... ")
+                wav = vocoder.infer_waveform(spec, progress_callback=vocoder_progress)
+
+        if wav is None:
             self.ui.log("Waveform generation with Griffin-Lim... ")
             wav = Synthesizer.griffin_lim(spec)
         self.ui.set_loading(0)
@@ -275,7 +265,7 @@ class Toolbox:
         self.ui.play(wav, Synthesizer.sample_rate)
 
         fref = '-'.join([self.ui.current_dataset_name, self.ui.current_speaker_name, self.ui.current_utterance_name])
-        ftime = '{}'.format(int(time.time()))
+        ftime = '{}'.format(time_formatter())
         ftext = self.ui.text_prompt.toPlainText()
         fms = int(len(wav) * 1000 / Synthesizer.sample_rate)
         fname = filename_formatter('{}_{}_{}ms_{}.wav'.format(fref, ftime, fms, ftext))
@@ -289,7 +279,7 @@ class Toolbox:
         embed, partial_embeds, _ = encoder.embed_utterance(encoder_wav, return_partials=True)
 
         # Add the utterance
-        name = speaker_name + "_gen_%05d" % int(time.time())
+        name = speaker_name + "_gen_{}".format(time_formatter())
         utterance = Utterance(name, speaker_name, wav, spec, embed, partial_embeds, True)
 
         np.save(self._out_embed_dir.joinpath(name + '.npy'), embed, allow_pickle=False)  # save
@@ -315,10 +305,15 @@ class Toolbox:
         # Case of Griffin-lim
         if model_fpath is None:
             return
-
-        self.ui.log("Loading the vocoder %s... " % model_fpath)
-        self.ui.set_loading(1)
-        start = timer()
-        vocoder.load_model(model_fpath)
-        self.ui.log("Done (%dms)." % int(1000 * (timer() - start)), "append")
-        self.ui.set_loading(0)
+        else:
+            self.ui.log("Loading the vocoder %s... " % model_fpath)
+            self.ui.set_loading(1)
+            start = timer()
+            if Path(model_fpath).parent.stem == "melgan":
+                vocoder_melgan.load_vocoder_melgan(model_fpath)
+            elif Path(model_fpath).parent.stem == "wavernn":
+                vocoder.load_model(model_fpath)
+            else:
+                return
+            self.ui.log("Done (%dms)." % int(1000 * (timer() - start)), "append")
+            self.ui.set_loading(0)

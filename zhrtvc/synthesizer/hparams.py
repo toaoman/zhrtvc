@@ -3,11 +3,11 @@ from tensorflow.contrib.training import HParams
 one = 64
 # Default hyperparameters
 hparams = HParams(
-    encoder_path=r"E:\lab\zhrtvc\logs\encoder\saved_models\pretrained.pt",
+    encoder_path=r"../encoder\saved_models\pretrained.pt",
     # Comma-separated list of cleaners to run on text prior to training and eval. For non-English
     # text, you may want to use "basic_cleaners" or "transliteration_cleaners".
     cleaners="chinese_cleaners",
-
+    center=True,
     # If you only have 1 GPU or want to use only one GPU, please set num_gpus=0 and specify the 
     # GPU idx on run. example:
     # expample 1 GPU of index 2 (train on "/gpu2" only): CUDA_VISIBLE_DEVICES=2 python train.py 
@@ -259,8 +259,8 @@ hparams = HParams(
     # Learning rate schedule
     tacotron_decay_learning_rate=True,
     # boolean, determines if the learning rate will follow an exponential decay
-    tacotron_start_decay=100000,  # 50000,  # Step at which learning decay starts
-    tacotron_decay_steps=20000,  # 50000,  # Determines the learning rate decay slope (UNDER TEST)
+    tacotron_start_decay=10000,  # 50000,  # Step at which learning decay starts
+    tacotron_decay_steps=10000,  # 50000,  # Determines the learning rate decay slope (UNDER TEST)
     tacotron_decay_rate=0.5,  # learning rate decay rate (UNDER TEST)
     tacotron_initial_learning_rate=1e-3,  # starting learning rate
     tacotron_final_learning_rate=1e-5,  # minimal learning rate

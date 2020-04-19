@@ -133,4 +133,4 @@ class Synthesizer:
         Inverts a mel spectrogram using Griffin-Lim. The mel spectrogram is expected to have been built
         with the same parameters present in hparams.py.
         """
-        return audio.inv_mel_spectrogram(mel, hparams)
+        return audio.inv_melspectrogram(mel, hparams)

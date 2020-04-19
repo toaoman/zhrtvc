@@ -13,7 +13,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--datasets_root", type=Path, default=Path(r'E:\data\aliaudio'), help= \
         "Path to the directory containing your LibriSpeech/TTS datasets.")
-    parser.add_argument("--datasets", type=str, default="alipinyin", help= \
+    parser.add_argument("--datasets", type=str, default="alijuzi", help= \
         "Path to the directory containing your LibriSpeech/TTS datasets.")
     parser.add_argument("-o", "--out_dir", type=Path, default=argparse.SUPPRESS, help= \
         "Path to the output directory that will contain the mel spectrograms, the audios and the "
