@@ -47,7 +47,8 @@ class UI(QDialog):
         self.draw_embed(utterance.embed, utterance.name, which)
 
     def draw_embed(self, embed, name, which):
-        embed_ax, _ = self.current_ax if which == "current" else self.gen_ax
+        axs = self.current_ax if which == "current" else self.gen_ax
+        embed_ax = axs[0]
         embed_ax.figure.suptitle("" if embed is None else name)
 
         ## Embedding
@@ -66,8 +67,8 @@ class UI(QDialog):
         embed_ax.figure.canvas.draw()
 
     def draw_spec(self, spec, which):
-        _, spec_ax = self.current_ax if which == "current" else self.gen_ax
-
+        axs = self.current_ax if which == "current" else self.gen_ax
+        spec_ax = axs[1]
         ## Spectrogram
         # Draw the spectrogram
         spec_ax.clear()
@@ -75,13 +76,29 @@ class UI(QDialog):
             im = spec_ax.imshow(spec, aspect="auto", interpolation="none")
             # spec_ax.figure.colorbar(mappable=im, shrink=0.65, orientation="horizontal", 
             # spec_ax=spec_ax)
-            spec_ax.set_title("mel spectrogram")
+            spec_ax.set_title("spectrogram")
 
         spec_ax.set_xticks([])
         spec_ax.set_yticks([])
         spec_ax.figure.canvas.draw()
         if which != "current":
             self.vocode_button.setDisabled(spec is None)
+
+    def draw_align(self, align, which):
+        axs = self.current_ax if which == "current" else self.gen_ax
+        align_ax = axs[2]
+        ## Spectrogram
+        # Draw the spectrogram
+        align_ax.clear()
+        if align is not None:
+            im = align_ax.pcolor(align)
+            # align_ax.figure.colorbar(mappable=im, shrink=0.65, orientation="horizontal",
+            # align_ax=align_ax)
+            align_ax.set_title("alignment")
+
+        align_ax.set_xticks([])
+        align_ax.set_yticks([])
+        align_ax.figure.canvas.draw()
 
     def draw_umap_projections(self, utterances: Set[Utterance]):
         self.umap_ax.clear()
@@ -320,6 +337,7 @@ class UI(QDialog):
         self.draw_embed(None, None, "generated")
         self.draw_spec(None, "current")
         self.draw_spec(None, "generated")
+        self.draw_align(None, "generated")
         self.draw_umap_projections(set())
         self.set_loading(0)
         self.play_button.setDisabled(True)
@@ -383,11 +401,11 @@ class UI(QDialog):
         i += 2
 
         # Random buttons
-        self.random_dataset_button = QPushButton("Random")
+        self.random_dataset_button = QPushButton("Random Text")
         browser_layout.addWidget(self.random_dataset_button, i, 0)
-        self.random_speaker_button = QPushButton("Random")
+        self.random_speaker_button = QPushButton("Random Speaker")
         browser_layout.addWidget(self.random_speaker_button, i, 1)
-        self.random_utterance_button = QPushButton("Random")
+        self.random_utterance_button = QPushButton("Random Audio")
         browser_layout.addWidget(self.random_utterance_button, i, 2)
         self.auto_next_checkbox = QCheckBox("Auto select next")
         self.auto_next_checkbox.setChecked(True)
@@ -404,7 +422,7 @@ class UI(QDialog):
         i += 1
 
         # Random & next utterance buttons
-        self.take_generated_button = QPushButton("Take generated")
+        self.take_generated_button = QPushButton("Preprocess")
         browser_layout.addWidget(self.take_generated_button, i, 0)
         self.record_button = QPushButton("Record")
         browser_layout.addWidget(self.record_button, i, 1)
@@ -429,14 +447,15 @@ class UI(QDialog):
         ## Embed & spectrograms
         vis_layout.addStretch()
 
-        gridspec_kw = {"width_ratios": [1, 4]}
+        gridspec_kw_current = {"width_ratios": [1, 4]}  # embed,spectrogram
         fig, self.current_ax = plt.subplots(1, 2, figsize=(10, 2.25), facecolor="#F0F0F0",
-                                            gridspec_kw=gridspec_kw)
+                                            gridspec_kw=gridspec_kw_current)
         fig.subplots_adjust(left=0, bottom=0.1, right=1, top=0.8)
         vis_layout.addWidget(FigureCanvas(fig))
 
-        fig, self.gen_ax = plt.subplots(1, 2, figsize=(10, 2.25), facecolor="#F0F0F0",
-                                        gridspec_kw=gridspec_kw)
+        gridspec_kw_gen = {"width_ratios": [1, 2, 2]}  # embed,alignment,spectrogram
+        fig, self.gen_ax = plt.subplots(1, 3, figsize=(10, 2.25), facecolor="#F0F0F0",
+                                        gridspec_kw=gridspec_kw_gen)
         fig.subplots_adjust(left=0, bottom=0.1, right=1, top=0.8)
         vis_layout.addWidget(FigureCanvas(fig))
 

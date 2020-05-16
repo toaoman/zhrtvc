@@ -15,6 +15,10 @@ from synthesizer.utils import audio
 from synthesizer.utils.text import text2pinyin, change_diao
 # from synthesizer.utils.cleaners import get_pinyin
 from tools.spec_processor import find_start_end_points
+
+from aukit.audio_normalizer import trim_long_silences, Dict2Obj
+import aukit
+
 from .sentence import xinqing_texts
 
 # Use this directory structure for your datasets, or modify it to fit your needs
@@ -98,6 +102,7 @@ class Toolbox:
         self.ui.play_button.clicked.connect(func)
         self.ui.stop_button.clicked.connect(self.ui.stop)
         self.ui.record_button.clicked.connect(self.record)
+        self.ui.take_generated_button.clicked.connect(self.preprocess)
 
         # Generation
         func = lambda: self.synthesize() or self.vocode()
@@ -140,6 +145,21 @@ class Toolbox:
 
         self.add_real_utterance(wav, name, speaker_name)
 
+    def preprocess(self):
+        wav = self.ui.selected_utterance.wav
+        out = aukit.remove_noise(wav, sr=Synthesizer.sample_rate)
+        hp = Dict2Obj({})
+        hp["vad_window_length"] = 10  # milliseconds
+        hp["vad_moving_average_width"] = 2
+        hp["vad_max_silence_length"] = 2
+        hp["audio_norm_target_dBFS"] = -32
+        hp["sample_rate"] = 16000
+        hp["int16_max"] = (2 ** 15) - 1
+        out = trim_long_silences(out, hparams=hp)
+        name = self.ui.selected_utterance.name + "_preprocessed"
+        speaker_name = self.ui.selected_utterance.speaker_name
+        self.add_real_utterance(out, name, speaker_name)
+
     def record(self):
         wav = self.ui.record_one(encoder.sampling_rate, 5)
         if wav is None:
@@ -149,7 +169,9 @@ class Toolbox:
 
         speaker_name = "user01"
         name = speaker_name + "_rec_{}".format(time_formatter())
-        audio.save_wav(wav, self._out_record_dir.joinpath(name + '.wav'), encoder.sampling_rate)  # save
+        fpath = self._out_record_dir.joinpath(name + '.wav')
+        audio.save_wav(wav, fpath, encoder.sampling_rate)  # save
+        wav = Synthesizer.load_preprocess_wav(fpath)  # 保持一致的数据格式
 
         self.add_real_utterance(wav, name, speaker_name)
 
@@ -196,7 +218,7 @@ class Toolbox:
 
         embed = self.ui.selected_utterance.embed
         embeds = np.stack([embed] * len(texts))
-        specs = self.synthesizer.synthesize_spectrograms(texts, embeds)
+        specs, aligns = self.synthesizer.synthesize_spectrograms(texts, embeds, return_alignments=True)
 
         # 去除前后安静或噪声部分
         for num, spec in enumerate(specs):
@@ -207,6 +229,7 @@ class Toolbox:
         # specs = [spec.T[:find_endpoint(spec.T)].T for spec in specs]  # find endpoint
         breaks = [spec.shape[1] for spec in specs]
         spec = np.concatenate(specs, axis=1)
+        align = np.concatenate(aligns, axis=1)
 
         fref = '-'.join([self.ui.current_dataset_name, self.ui.current_speaker_name, self.ui.current_utterance_name])
         ftext = '。'.join(texts)
@@ -215,6 +238,7 @@ class Toolbox:
         np.save(self._out_mel_dir.joinpath(fname), spec, allow_pickle=False)  # save
 
         self.ui.draw_spec(spec, "generated")
+        self.ui.draw_align(align, "generated")
         self.current_generated = (self.ui.selected_utterance.speaker_name, spec, breaks, None)
         self.ui.set_loading(0)
 

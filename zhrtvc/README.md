@@ -2,6 +2,13 @@
 
 ## 版本控制
 
+### v1.1.3
+- 从aukit.audio_io模块导入Dict2Obj。
+- toolbox可视化显示合成的embed，alignment，spectrogram。
+- toolbox录音修正格式不一致的bug。
+- 增加代码行工具demo_cli。
+- toolbox增加Preprocess的语音预处理按键，降噪和去除静音。
+
 ### v1.1.2
 - 语音和频谱的处理使用工具包：aukit，用pip install aukit即可。
 - 文本和音素的处理使用工具包：phkit，用pip install phkit即可。
@@ -9,7 +16,6 @@
 - 工具盒toolbox界面的Dataset的Random按钮是随机选择文本，而非选择数据集。选择数据集需要手动下拉框选择。
 - 预训练的synthesizer模型用ali句子的dataset训练的，用alijuzi的dataset的语音做参考音频效果较好。
 - 重整模型和数据的目录结构，提供可训练的样例。
-
 
 ## 使用指引
 主要做synthesizer的部分，encoder和vocoder都用publish的模型。

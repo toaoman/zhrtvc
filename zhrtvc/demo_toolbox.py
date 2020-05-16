@@ -1,7 +1,3 @@
-import os
-
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-
 import tensorflow as tf
 
 config = tf.ConfigProto()
@@ -24,7 +20,7 @@ if __name__ == '__main__':
         "supported datasets. You can add your own data by created a directory named UserAudio "
         "in your datasets root. Supported formats are mp3, flac, wav and m4a. Each speaker should "
         "be inside a directory, e.g. <datasets_root>/UserAudio/speaker_01/audio_01.wav.",
-                        default=r"../models/data/samples")
+                        default=r"../data/samples")
     parser.add_argument("-e", "--enc_models_dir", type=Path, default="../models/encoder/saved_models",
                         help="Directory containing saved encoder models")
     parser.add_argument("-s", "--syn_models_dir", type=Path, default="../models/synthesizer/saved_models",

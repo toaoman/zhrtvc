@@ -13,7 +13,8 @@ import librosa
 import torch
 import numpy as np
 
-from aukit.audio_griffinlim import mel_spectrogram, default_hparams, Dict2Obj
+from aukit.audio_griffinlim import mel_spectrogram, default_hparams
+from aukit.audio_io import Dict2Obj
 import aukit
 
 _melgan_vocoder = None
