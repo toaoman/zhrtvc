@@ -1,25 +1,25 @@
 models
-├─encoder
-│  └─saved_models
-├─synthesizer
-│  └─saved_models
-│      └─logs-syne
-│          ├─checkpoints
-│          ├─evals
-│          │  ├─plots
-│          │  └─wavs
-│          ├─events
-│          ├─metas
-│          ├─plots
-│          ├─spectrograms
-│          └─wavs
-├─toolbox
-│  └─saved_files
-│      ├─embeds
-│      ├─mels
-│      ├─records
-│      └─wavs
-└─vocoder
-    └─saved_models
-        ├─melgan
-        └─wavernn
+|---encoder
+|  |---saved_models
+|---synthesizer
+|  |---saved_models
+|      |---logs-syne
+|          |---checkpoints
+|          |---evals
+|          |  |---plots
+|          |  |---wavs
+|          |---events
+|          |---metas
+|          |---plots
+|          |---spectrograms
+|          |---wavs
+|---toolbox
+|  |---saved_files
+|      |---embeds
+|      |---mels
+|      |---records
+|      |---wavs
+|---vocoder
+    |---saved_models
+        |---melgan
+        |---wavernn

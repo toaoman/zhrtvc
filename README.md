@@ -3,7 +3,15 @@ Chinese Real Time Voice Cloning
 
 ### 版本
 
-v1.1.2
+v1.1.3
+
+**变更**
+
+- 从aukit.audio_io模块导入Dict2Obj。
+- toolbox可视化显示合成的embed，alignment，spectrogram。
+- toolbox录音修正格式不一致的bug。
+- 增加代码行工具demo_cli。
+- toolbox增加Preprocess的语音预处理按键，降噪和去除静音。
 
 详见[readme](zhrtvc/README.md)
 
