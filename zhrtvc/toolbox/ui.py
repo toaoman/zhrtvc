@@ -86,6 +86,7 @@ class UI(QDialog):
 
     def draw_align(self, align, which):
         axs = self.current_ax if which == "current" else self.gen_ax
+        title = "preprocessed spectrogram" if which == "current" else "alignment"
         align_ax = axs[2]
         ## Spectrogram
         # Draw the spectrogram
@@ -94,7 +95,7 @@ class UI(QDialog):
             im = align_ax.pcolor(align)
             # align_ax.figure.colorbar(mappable=im, shrink=0.65, orientation="horizontal",
             # align_ax=align_ax)
-            align_ax.set_title("alignment")
+            align_ax.set_title(title)
 
         align_ax.set_xticks([])
         align_ax.set_yticks([])
@@ -292,7 +293,7 @@ class UI(QDialog):
 
         # Vocoder
         vocoder_fpaths = list(vocoder_models_dir.glob("**/*.pt"))
-        vocoder_items = [(f.stem, f) for f in vocoder_fpaths] + [("Griffin-Lim", None)]
+        vocoder_items = [("Griffin-Lim", None)] + [(f.stem, f) for f in vocoder_fpaths]
         self.repopulate_box(self.vocoder_box, vocoder_items)
 
     @property
@@ -309,6 +310,7 @@ class UI(QDialog):
             self.utterance_history.removeItem(self.max_saved_utterances)
 
         self.play_button.setDisabled(False)
+        self.compare_button.setDisabled(False)
         self.generate_button.setDisabled(False)
         self.synthesize_button.setDisabled(False)
 
@@ -337,11 +339,13 @@ class UI(QDialog):
         self.draw_embed(None, None, "generated")
         self.draw_spec(None, "current")
         self.draw_spec(None, "generated")
+        self.draw_align(None, "current")
         self.draw_align(None, "generated")
         self.draw_umap_projections(set())
         self.set_loading(0)
         self.play_button.setDisabled(True)
         self.generate_button.setDisabled(True)
+        self.compare_button.setDisabled(True)
         self.synthesize_button.setDisabled(True)
         self.vocode_button.setDisabled(True)
         [self.log("") for _ in range(self.max_log_lines)]
@@ -392,7 +396,7 @@ class UI(QDialog):
         browser_layout.addWidget(QLabel("<b>Speaker</b>"), i, 1)
         browser_layout.addWidget(self.speaker_box, i + 1, 1)
         self.utterance_box = QComboBox()
-        browser_layout.addWidget(QLabel("<b>Utterance</b>"), i, 2)
+        browser_layout.addWidget(QLabel("<b>Audio</b>"), i, 2)
         browser_layout.addWidget(self.utterance_box, i + 1, 2)
         self.browser_browse_button = QPushButton("Browse")
         browser_layout.addWidget(self.browser_browse_button, i, 3)
@@ -447,8 +451,8 @@ class UI(QDialog):
         ## Embed & spectrograms
         vis_layout.addStretch()
 
-        gridspec_kw_current = {"width_ratios": [1, 4]}  # embed,spectrogram
-        fig, self.current_ax = plt.subplots(1, 2, figsize=(10, 2.25), facecolor="#F0F0F0",
+        gridspec_kw_current = {"width_ratios": [1, 2, 2]}  # embed,spectrogram
+        fig, self.current_ax = plt.subplots(1, 3, figsize=(10, 2.25), facecolor="#F0F0F0",
                                             gridspec_kw=gridspec_kw_current)
         fig.subplots_adjust(left=0, bottom=0.1, right=1, top=0.8)
         vis_layout.addWidget(FigureCanvas(fig))
@@ -468,8 +472,12 @@ class UI(QDialog):
         self.text_prompt = QPlainTextEdit(default_text)
         gen_layout.addWidget(self.text_prompt, stretch=1)
 
+        layout = QHBoxLayout()  # 改为两部分
         self.generate_button = QPushButton("Synthesize and vocode")
-        gen_layout.addWidget(self.generate_button)
+        layout.addWidget(self.generate_button)
+        self.compare_button = QPushButton("Compare")
+        layout.addWidget(self.compare_button)
+        gen_layout.addLayout(layout)
 
         layout = QHBoxLayout()
         self.synthesize_button = QPushButton("Synthesize only")

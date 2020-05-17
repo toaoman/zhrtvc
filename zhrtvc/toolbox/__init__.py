@@ -11,6 +11,7 @@ import traceback
 import sys
 import re
 import time
+import os
 from synthesizer.utils import audio
 
 from aukit.audio_normalizer import trim_long_silences, Dict2Obj
@@ -21,7 +22,18 @@ from .sentence import xinqing_texts
 # Use this directory structure for your datasets, or modify it to fit your needs
 
 filename_formatter_re = re.compile(r'[\s\\/:*?"<>|\']+')
-filename_formatter = lambda x: filename_formatter_re.sub('_', x)[:70]
+
+
+def filename_formatter(x):
+    f, e = os.path.splitext(filename_formatter_re.sub('_', x))
+    return "{}.{}".format(f[:70], e)
+
+
+def filename_add_suffix(x, s):
+    a, b = os.path.splitext(str(x))
+    return "{}{}{}".format(a, s, b)
+
+
 time_formatter = lambda: time.strftime("%Y%m%d-%H%M%S")
 
 total_texts = xinqing_texts
@@ -36,6 +48,16 @@ class Toolbox:
 
         self.datasets_root = datasets_root
         self.datasets = [p.name for p in Path(datasets_root).glob("*") if p.is_dir()]
+
+        metapath = Path(self.datasets_root).joinpath("metadata.csv")
+        if metapath.is_file():
+            itdt = {}
+            for line in open(metapath, encoding="utf8"):
+                idx, text = line.strip().split("\t")
+                itdt[idx] = text
+            self.itdt = itdt
+        else:
+            self.itdt = {}
 
         self.low_mem = low_mem
         self.utterances = set()
@@ -74,7 +96,7 @@ class Toolbox:
         random_func = lambda level: lambda: self.ui.populate_browser(self.datasets_root,
                                                                      self.datasets,
                                                                      level)
-        text_func = lambda: self.ui.text_prompt.setPlainText(np.random.choice(total_texts, 1)[0])
+        text_func = lambda: self.ui.text_prompt.setPlainText(np.random.choice(total_texts))
         self.ui.random_dataset_button.clicked.connect(text_func)
         self.ui.random_speaker_button.clicked.connect(random_func(1))
         self.ui.random_utterance_button.clicked.connect(random_func(2))
@@ -104,6 +126,7 @@ class Toolbox:
         # Generation
         func = lambda: self.synthesize() or self.vocode()
         self.ui.generate_button.clicked.connect(func)
+        self.ui.compare_button.clicked.connect(self.compare)
         self.ui.synthesize_button.clicked.connect(self.synthesize)
         self.ui.vocode_button.clicked.connect(self.vocode)
 
@@ -120,10 +143,12 @@ class Toolbox:
                          self.ui.current_dataset_name,
                          self.ui.current_speaker_name,
                          self.ui.current_utterance_name)
-            # name = '-'.join(fpath.relative_to(self.datasets_root).parts)
-            speaker_name = "-".join((self.ui.current_dataset_name.replace("\\", "_").replace("/", "_"),
-                                     self.ui.current_speaker_name.replace("\\", "_").replace("/", "_")))
-            name = "-".join((speaker_name, self.ui.current_utterance_name.replace("\\", "_").replace("/", "_")))
+            # name = '/'.join(fpath.relative_to(self.datasets_root).parts)
+            dat = self.ui.current_dataset_name.replace("\\", "#").replace("/", "#")
+            spk = self.ui.current_speaker_name.replace("\\", "#").replace("/", "#")
+            aud = self.ui.current_utterance_name.replace("\\", "#").replace("/", "#")
+            speaker_name = "#".join((dat, spk))
+            name = "#".join((speaker_name, aud))
             # name = '-'.join(fpath.relative_to(self.datasets_root.joinpath(self.ui.current_dataset_name)).parts)
             # speaker_name = self.ui.current_speaker_name.replace("\\", "-").replace("/", "-")
             # Select the next utterance
@@ -142,6 +167,24 @@ class Toolbox:
 
         self.add_real_utterance(wav, name, speaker_name)
 
+    def compare(self):
+        """
+        1.判断参考音频是否有对应文本。
+        2.输入框更新为参考文本。
+        3.合成参考音频对应文本的语音。
+        4.展示embed,spectrogram,alignment。
+        :return:
+        """
+        idx = self.ui.selected_utterance.name.replace("#", "/")
+        idx = re.sub(r"(_preprocessed)(\..*?)$", r"\2", idx)
+        if idx not in self.itdt:
+            print("Compare Failed! index: {}".format(idx))
+            return
+
+        self.ui.text_prompt.setPlainText(self.itdt[idx])
+        self.synthesize()
+        self.vocode()
+
     def preprocess(self):
         wav = self.ui.selected_utterance.wav
         out = aukit.remove_noise(wav, sr=Synthesizer.sample_rate)
@@ -153,7 +196,11 @@ class Toolbox:
         hp["sample_rate"] = 16000
         hp["int16_max"] = (2 ** 15) - 1
         out = trim_long_silences(out, hparams=hp)
-        name = self.ui.selected_utterance.name + "_preprocessed"
+
+        spec = Synthesizer.make_spectrogram(out)
+        self.ui.draw_align(spec[::-1], "current")
+
+        name = filename_add_suffix(self.ui.selected_utterance.name, "_preprocessed")
         speaker_name = self.ui.selected_utterance.speaker_name
         self.add_real_utterance(out, name, speaker_name)
 
@@ -221,7 +268,7 @@ class Toolbox:
         spec = np.concatenate(specs, axis=1)
         align = np.concatenate(aligns, axis=1)
 
-        fref = '-'.join([self.ui.current_dataset_name, self.ui.current_speaker_name, self.ui.current_utterance_name])
+        fref = self.ui.selected_utterance.name
         ftext = '。'.join(texts)
         ftime = '{}'.format(time_formatter())
         fname = filename_formatter('{}_{}_{}zi_{}.npy'.format(fref, ftime, len(ftext), ftext))
@@ -248,8 +295,10 @@ class Toolbox:
             self.ui.set_loading(i, seq_len)
 
         wav = None
+        vocname = ""
         if self.ui.current_vocoder_fpath is not None:
             model_fpath = self.ui.current_vocoder_fpath
+            vocname = Path(model_fpath).parent.stem
             if Path(model_fpath).parent.stem == "melgan":
                 self.ui.log("Waveform generation with MelGAN... ")
                 wav = vocoder_melgan.infer_waveform_melgan(spec, model_fpath)
@@ -259,6 +308,7 @@ class Toolbox:
                 wav = vocoder.infer_waveform(spec, progress_callback=vocoder_progress)
 
         if wav is None:
+            vocname = "griffinlim"
             self.ui.log("Waveform generation with Griffin-Lim... ")
             wav = Synthesizer.griffin_lim(spec)
         self.ui.set_loading(0)
@@ -268,11 +318,12 @@ class Toolbox:
         wav = wav / np.abs(wav).max() * 0.97
         self.ui.play(wav, Synthesizer.sample_rate)
 
-        fref = '-'.join([self.ui.current_dataset_name, self.ui.current_speaker_name, self.ui.current_utterance_name])
+        fref = self.ui.selected_utterance.name
         ftime = '{}'.format(time_formatter())
         ftext = self.ui.text_prompt.toPlainText()
         fms = int(len(wav) * 1000 / Synthesizer.sample_rate)
-        fname = filename_formatter('{}_{}_{}ms_{}.wav'.format(fref, ftime, fms, ftext))
+        fvoc = vocname
+        fname = filename_formatter('{}_{}_{}_{}ms_{}.wav'.format(fref, ftime, fvoc, fms, ftext))
         audio.save_wav(wav, self._out_wav_dir.joinpath(fname), Synthesizer.sample_rate)  # save
 
         # Compute the embedding

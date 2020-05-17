@@ -9,6 +9,9 @@
 - 增加代码行工具demo_cli。
 - toolbox增加Preprocess的语音预处理按键，降噪和去除静音。
 - 修正toolbox合成语音结尾截断的bug。
+- 样例文本提供长句和短句。
+- 增加合成参考音频文本的按键Compare，对比参考语音和合成语音。
+
 
 ### v1.1.2
 - 语音和频谱的处理使用工具包：aukit，用pip install aukit即可。

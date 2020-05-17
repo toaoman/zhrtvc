@@ -1,9 +1,11 @@
 # zhrtvc
-Chinese Real Time Voice Cloning
+Zhongwen Real Time Voice Cloning
 
 ### 版本
 
 v1.1.3
+
+详见[readme](zhrtvc/README.md)
 
 **变更**
 
@@ -13,13 +15,32 @@ v1.1.3
 - 增加代码行工具demo_cli。
 - toolbox增加Preprocess的语音预处理按键，降噪和去除静音。
 - 修正toolbox合成语音结尾截断的bug。
-
-详见[readme](zhrtvc/README.md)
+- 样例文本提供长句和短句。
+- 增加合成参考音频文本的按键Compare，对比参考语音和合成语音。
 
 
 **toolbox**
 
-![toolbox](https://github.com/KuangDD/zhrtvc/blob/master/files/toolbox.png)
+![toolbox](toolbox.png "toolbox")
+
+**合成样例**
+
+[aliaudio-Aibao-004113.wav](files/aliaudio-Aibao-004113.wav)
+
+[aliaudio-Aimei-007261.wav](files/aliaudio-Aimei-007261.wav)
+
+[aliaudio-Aina-000819.wav](files/aliaudio-Aina-000819.wav)
+
+[aliaudio-Aiqi-009619.wav](files/aliaudio-Aiqi-009619.wav)
+
+[aliaudio-Aitong-003149.wav](files/aliaudio-Aitong-003149.wav)
+
+[aliaudio-Aiwei-009461.wav](files/aliaudio-Aiwei-009461.wav)
+
+**注意**
+
+- 跑提供的模型建议用Griffin-Lim声码器，目前MelGAN和WaveRNN没有完全适配。
+
 
 ### 目录介绍
 

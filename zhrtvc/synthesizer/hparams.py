@@ -161,7 +161,7 @@ hparams = HParams(
     # Griffin Lim
     power=1.5,
     # Only used in G&L inversion, usually values between 1.2 and 1.5 are a good choice.
-    griffin_lim_iters=10,  # 60,
+    griffin_lim_iters=30,  # 60,
     # Number of G&L iterations, typically 30 is enough but we use 60 to ensure convergence.
     ###########################################################################################################################################
 
