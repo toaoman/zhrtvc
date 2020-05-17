@@ -12,9 +12,6 @@ import sys
 import re
 import time
 from synthesizer.utils import audio
-from synthesizer.utils.text import text2pinyin, change_diao
-# from synthesizer.utils.cleaners import get_pinyin
-from tools.spec_processor import find_start_end_points
 
 from aukit.audio_normalizer import trim_long_silences, Dict2Obj
 import aukit
@@ -220,13 +217,6 @@ class Toolbox:
         embeds = np.stack([embed] * len(texts))
         specs, aligns = self.synthesizer.synthesize_spectrograms(texts, embeds, return_alignments=True)
 
-        # 去除前后安静或噪声部分
-        for num, spec in enumerate(specs):
-            tmp = spec.T
-            sidx, eidx = find_start_end_points(tmp)
-            specs[num] = tmp[sidx:eidx].T
-
-        # specs = [spec.T[:find_endpoint(spec.T)].T for spec in specs]  # find endpoint
         breaks = [spec.shape[1] for spec in specs]
         spec = np.concatenate(specs, axis=1)
         align = np.concatenate(aligns, axis=1)
@@ -273,13 +263,6 @@ class Toolbox:
             wav = Synthesizer.griffin_lim(spec)
         self.ui.set_loading(0)
         self.ui.log(" Done!", "append")
-
-        # Add breaks
-        b_ends = np.cumsum(np.array(breaks) * Synthesizer.hparams.hop_size)
-        b_starts = np.concatenate(([0], b_ends[:-1]))
-        wavs = [wav[start:end] for start, end, in zip(b_starts, b_ends)]
-        breaks = [np.zeros(int(0.15 * Synthesizer.sample_rate))] * len(breaks)
-        wav = np.concatenate([i for w, b in zip(wavs, breaks) for i in (w, b)])
 
         # Play it
         wav = wav / np.abs(wav).max() * 0.97
