@@ -23,6 +23,12 @@ v1.1.3
 
 ![toolbox](toolbox.png "toolbox")
 
+**原始语音和克隆语音对比**
+
+链接: https://pan.baidu.com/s/1TQwgzEIxD2VBrVZKCblN1g 
+
+提取码: 8ucd
+
 **合成样例**
 
 [aliaudio-Aibao-004113.wav](files/aliaudio-Aibao-004113.wav)
