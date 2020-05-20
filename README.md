@@ -49,7 +49,7 @@ v1.1.3
 
 * **注意**
 
-- 跑提供的模型建议用Griffin-Lim声码器，目前MelGAN和WaveRNN没有完全适配。
+跑提供的模型建议用Griffin-Lim声码器，目前MelGAN和WaveRNN没有完全适配。
 
 
 ### 目录介绍
