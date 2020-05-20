@@ -7,29 +7,32 @@ v1.1.3
 
 详见[readme](zhrtvc/README.md)
 
-**变更**
 
-- 从aukit.audio_io模块导入Dict2Obj。
-- toolbox可视化显示合成的embed，alignment，spectrogram。
-- toolbox录音修正格式不一致的bug。
-- 增加代码行工具demo_cli。
-- toolbox增加Preprocess的语音预处理按键，降噪和去除静音。
-- 修正toolbox合成语音结尾截断的bug。
-- 样例文本提供长句和短句。
-- 增加合成参考音频文本的按键Compare，对比参考语音和合成语音。
-
-
-**toolbox**
-
-![toolbox](toolbox.png "toolbox")
-
-**原始语音和克隆语音对比**
+* **原始语音和克隆语音对比样例**
 
 链接: https://pan.baidu.com/s/1TQwgzEIxD2VBrVZKCblN1g 
 
 提取码: 8ucd
 
-**合成样例**
+
+* **变更**
+
+  - 从aukit.audio_io模块导入Dict2Obj。
+  - toolbox可视化显示合成的embed，alignment，spectrogram。
+  - toolbox录音修正格式不一致的bug。
+  - 增加代码行工具demo_cli。
+  - toolbox增加Preprocess的语音预处理按键，降噪和去除静音。
+  - 修正toolbox合成语音结尾截断的bug。
+  - 样例文本提供长句和短句。
+  - 增加合成参考音频文本的按键Compare，对比参考语音和合成语音。
+
+
+* **toolbox**
+
+![toolbox](toolbox.png "toolbox")
+
+
+* **合成样例**
 
 [aliaudio-Aibao-004113.wav](files/aliaudio-Aibao-004113.wav)
 
@@ -43,7 +46,8 @@ v1.1.3
 
 [aliaudio-Aiwei-009461.wav](files/aliaudio-Aiwei-009461.wav)
 
-**注意**
+
+* **注意**
 
 - 跑提供的模型建议用Griffin-Lim声码器，目前MelGAN和WaveRNN没有完全适配。
 
@@ -63,6 +67,8 @@ v1.1.3
 
 预训练的模型在百度网盘下载，下载后解压，替换models文件夹即可。
 
+* **样本模型**
+
 链接：https://pan.baidu.com/s/14hmJW7sY5PYYcCFAbqV0Kw 
 
 提取码：zl9i
@@ -74,6 +80,8 @@ v1.1.3
 可以直接执行`synthesizer_preprocess_audio.py`和`synthesizer_preprocess_embeds.py`把samples的语音文本对齐语料转为SV2TTS的用于训练synthesizer的数据。
 
 语料样例在百度网盘下载，下载后解压，替换data文件夹即可。
+
+* **样本数据**
 
 链接：https://pan.baidu.com/s/1Q_WUrmb7MW_6zQSPqhX9Vw 
 
