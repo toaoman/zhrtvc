@@ -1,5 +1,5 @@
 from synthesizer.tacotron2 import Tacotron2
-from synthesizer.hparams import hparams
+from synthesizer.hparams import hparams as default_hparams
 # from multiprocess.pool import Pool  # You're free to use either one
 from multiprocessing import Pool  #
 from synthesizer.utils import audio
@@ -12,10 +12,10 @@ import librosa
 
 
 class Synthesizer:
-    sample_rate = hparams.sample_rate
-    hparams = hparams
+    sample_rate = default_hparams.sample_rate
+    hparams = default_hparams
 
-    def __init__(self, checkpoints_dir: Path, verbose=True, low_mem=False):
+    def __init__(self, checkpoints_dir: Path, verbose=True, low_mem=False, hparams=None):
         """
         Creates a synthesizer ready for inference. The actual model isn't loaded in memory until
         needed or until load() is called.
@@ -27,6 +27,9 @@ class Synthesizer:
         will be released after each usage. Adds a large overhead, only recommended if your GPU 
         memory is low (<= 2gb)
         """
+        self.hparams = hparams or default_hparams
+        self.sample_rate = self.hparams.sample_rate
+
         self.verbose = verbose
         self._low_mem = low_mem
 
@@ -55,7 +58,7 @@ class Synthesizer:
         if self._low_mem:
             raise Exception("Cannot load the synthesizer permanently in low mem mode")
         tf.reset_default_graph()
-        self._model = Tacotron2(self.checkpoint_fpath, hparams)
+        self._model = Tacotron2(self.checkpoint_fpath, self.hparams)
 
     def synthesize_spectrograms(self, texts: List[str],
                                 embeddings: Union[np.ndarray, List[np.ndarray]],
@@ -86,8 +89,9 @@ class Synthesizer:
         return (specs, alignments) if return_alignments else specs
 
     @staticmethod
-    def _one_shot_synthesize_spectrograms(checkpoint_fpath, embeddings, texts):
+    def _one_shot_synthesize_spectrograms(checkpoint_fpath, embeddings, texts, hparams=None):
         # Load the model and forward the inputs
+        hparams = hparams or default_hparams
         tf.reset_default_graph()
         model = Tacotron2(checkpoint_fpath, hparams)
         specs, alignments = model.my_synthesize(embeddings, texts)
@@ -103,22 +107,24 @@ class Synthesizer:
         return specs, alignments
 
     @staticmethod
-    def load_preprocess_wav(fpath):
+    def load_preprocess_wav(fpath, hparams=None):
         """
         Loads and preprocesses an audio file under the same conditions the audio files were used to
         train the synthesizer. 
         """
+        hparams = hparams or default_hparams
         wav = librosa.load(fpath, hparams.sample_rate)[0]
         if hparams.rescale:
             wav = wav / np.abs(wav).max() * hparams.rescaling_max
         return wav
 
     @staticmethod
-    def make_spectrogram(fpath_or_wav: Union[str, Path, np.ndarray]):
+    def make_spectrogram(fpath_or_wav: Union[str, Path, np.ndarray], hparams=None):
         """
         Creates a mel spectrogram from an audio file in the same manner as the mel spectrograms that 
         were fed to the synthesizer when training.
         """
+        hparams = hparams or default_hparams
         if isinstance(fpath_or_wav, str) or isinstance(fpath_or_wav, Path):
             wav = Synthesizer.load_preprocess_wav(fpath_or_wav)
         else:
@@ -128,9 +134,10 @@ class Synthesizer:
         return mel_spectrogram
 
     @staticmethod
-    def griffin_lim(mel):
+    def griffin_lim(mel, hparams=None):
         """
         Inverts a mel spectrogram using Griffin-Lim. The mel spectrogram is expected to have been built
         with the same parameters present in hparams.py.
         """
+        hparams = hparams or default_hparams
         return audio.inv_melspectrogram(mel, hparams)

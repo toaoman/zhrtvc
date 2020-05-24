@@ -12,9 +12,10 @@ import sys
 import re
 import time
 import os
+import json
 from synthesizer.utils import audio
 
-from aukit.audio_normalizer import trim_long_silences, Dict2Obj
+from aukit.audio_normalizer import trim_long_silences
 import aukit
 
 from .sentence import xinqing_texts
@@ -188,7 +189,7 @@ class Toolbox:
     def preprocess(self):
         wav = self.ui.selected_utterance.wav
         out = aukit.remove_noise(wav, sr=Synthesizer.sample_rate)
-        hp = Dict2Obj({})
+        hp = aukit.Dict2Obj({})
         hp["vad_window_length"] = 10  # milliseconds
         hp["vad_moving_average_width"] = 2
         hp["vad_max_silence_length"] = 2
@@ -251,9 +252,14 @@ class Toolbox:
 
         # Synthesize the spectrogram
         if self.synthesizer is None:
-            model_dir = self.ui.current_synthesizer_model_dir
+            model_dir = Path(self.ui.current_synthesizer_model_dir)
             checkpoints_dir = model_dir.joinpath("checkpoints")
-            self.synthesizer = Synthesizer(checkpoints_dir, low_mem=self.low_mem)
+            hp_path = model_dir.joinpath("metas", "hparams.json")    # load from trained models
+            if hp_path.exists():
+                hparams = aukit.Dict2Obj(json.load(open(hp_path, encoding="utf8")))
+            else:
+                hparams = None
+            self.synthesizer = Synthesizer(checkpoints_dir, low_mem=self.low_mem, hparams=hparams)
         if not self.synthesizer.is_loaded():
             self.ui.log("Loading the synthesizer %s" % self.synthesizer.checkpoint_fpath)
 

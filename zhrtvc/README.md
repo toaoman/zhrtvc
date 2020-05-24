@@ -3,7 +3,9 @@
 ## 版本控制
 
 ### v1.1.4
-- update train melgan.
+- Update train melgan. Fix some bugs.
+- Update toolbox. Load synthesizer with hparams.
+- Add tools for joint audios to train.
 
 ### v1.1.3
 - 从aukit.audio_io模块导入Dict2Obj。
