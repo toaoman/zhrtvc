@@ -14,11 +14,19 @@ def files_to_list(filename):
     """
     Takes a text file of filenames and makes a list of filenames
     """
-    with open(filename, encoding="utf-8") as f:
-        files = f.readlines()
-
-    files = [f.rstrip() for f in files]
-    return files
+    curdir = Path(filename).parent
+    outs = []
+    with open(filename, encoding="utf-8") as fin:
+        for line in fin:
+            if line.strip():
+                fname = Path(line.strip().split("\t")[0])
+                if fname.exists():
+                    outs.append(fname)
+                else:
+                    fname = curdir.joinpath(fname)
+                    if fname.exists():
+                        outs.append(fname)
+    return outs
 
 
 class AudioDataset(torch.utils.data.Dataset):
@@ -31,7 +39,6 @@ class AudioDataset(torch.utils.data.Dataset):
         self.sampling_rate = sampling_rate
         self.segment_length = segment_length
         self.audio_files = files_to_list(training_files)
-        self.audio_files = [Path(training_files).parent / x for x in self.audio_files]
         random.seed(1234)
         random.shuffle(self.audio_files)
         self.augment = augment

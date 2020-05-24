@@ -2,6 +2,9 @@
 
 ## 版本控制
 
+### v1.1.4
+- update train melgan.
+
 ### v1.1.3
 - 从aukit.audio_io模块导入Dict2Obj。
 - toolbox可视化显示合成的embed，alignment，spectrogram。

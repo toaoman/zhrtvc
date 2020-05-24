@@ -3,7 +3,7 @@ Zhongwen Real Time Voice Cloning
 
 ### 版本
 
-v1.1.3
+v1.1.4
 
 详见[readme](zhrtvc/README.md)
 
@@ -13,18 +13,6 @@ v1.1.3
 链接: https://pan.baidu.com/s/1TQwgzEIxD2VBrVZKCblN1g 
 
 提取码: 8ucd
-
-
-* **变更**
-
-  - 从aukit.audio_io模块导入Dict2Obj。
-  - toolbox可视化显示合成的embed，alignment，spectrogram。
-  - toolbox录音修正格式不一致的bug。
-  - 增加代码行工具demo_cli。
-  - toolbox增加Preprocess的语音预处理按键，降噪和去除静音。
-  - 修正toolbox合成语音结尾截断的bug。
-  - 样例文本提供长句和短句。
-  - 增加合成参考音频文本的按键Compare，对比参考语音和合成语音。
 
 
 * **toolbox**

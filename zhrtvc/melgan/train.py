@@ -37,8 +37,9 @@ _pad_len = (default_hparams.n_fft - default_hparams.hop_size) // 2
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--save_path", default=r"E:\lab\melgan\logs\alijuzi")
-    parser.add_argument("--load_path", default=r"E:\lab\melgan\logs\publish")  # r"E:\lab\melgan\logs\publish"
+    parser.add_argument("--save_path", default=r"")
+    parser.add_argument("--load_path", default=r"")
+    parser.add_argument("--data_path", type=str, default=r"")
     parser.add_argument("--start_step", default=0)
 
     parser.add_argument("--n_mel_channels", type=int, default=80)
@@ -52,7 +53,6 @@ def parse_args():
     parser.add_argument("--lambda_feat", type=float, default=10)
     parser.add_argument("--cond_disc", action="store_true")
 
-    parser.add_argument("--data_path", type=str, default=r"E:\data\aliaudio\alijuzi")
     parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--seq_len", type=int, default=8192)
 
@@ -64,17 +64,23 @@ def parse_args():
     return args
 
 
-
-
 def audio2mel(src):
-    # print("wav", src.shape)
-    # mel = Audio2Mel().cuda()(src)
-    # print("mel", mel.cpu().shape)
-    # return mel
+    """
+    训练中使用。
+    :param src:
+    :return:
+    """
+    mel = Audio2Mel().cuda()(src)
+    return mel
 
-    # wavs = F.pad(src, (p, p), "reflect")
+
+def audio2mel_v2(src):
+    """
+    用aukit模块重现生成mel。
+    :param src:
+    :return:
+    """
     wavs = src.cpu().numpy()
-
     mels = []
     for wav in wavs:
         wav = np.pad(wav.flatten(), (_pad_len, _pad_len), mode="reflect")
@@ -121,7 +127,7 @@ def train_melgan(args):
     optD = torch.optim.Adam(netD.parameters(), lr=1e-4, betas=(0.5, 0.9))
 
     if load_root and load_root.exists():
-        netG.load_state_dict(torch.load(load_root / "netG.pt"))
+        netG.load_state_dict(torch.load(load_root))
         # optG.load_state_dict(torch.load(load_root / "optG.pt"))
         # netD.load_state_dict(torch.load(load_root / "netD.pt"))
         # optD.load_state_dict(torch.load(load_root / "optD.pt"))
@@ -130,10 +136,10 @@ def train_melgan(args):
     # Create data loaders #
     #######################
     train_set = AudioDataset(
-        Path(args.data_path) / "train_files.txt", args.seq_len, sampling_rate=22050
+        Path(args.data_path), args.seq_len, sampling_rate=22050
     )
     test_set = AudioDataset(
-        Path(args.data_path) / "test_files.txt",
+        Path(args.data_path),   # test file
         22050 * 4,
         sampling_rate=22050,
         augment=False,
@@ -279,4 +285,4 @@ def train_melgan(args):
 
 
 if __name__ == "__main__":
-    main()
+    train_melgan()
