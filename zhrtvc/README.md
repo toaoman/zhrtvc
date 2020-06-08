@@ -2,6 +2,12 @@
 
 ## 版本控制
 
+### v1.1.5
+- 修正phkit依赖版本错误。
+- 提供项目的依赖及参考版本。
+- 提供用开源数据训练的模型。
+- 提供降噪和去除静音的预处理后的开源语料。
+
 ### v1.1.4
 - Update train melgan. Fix some bugs.
 - Update toolbox. Load synthesizer with hparams.

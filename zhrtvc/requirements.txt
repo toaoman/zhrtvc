@@ -1,17 +1,21 @@
-# tensorflow-gpu>=1.10.0,<=1.14.0
-umap-learn
-visdom
-# webrtcvad
-librosa>=0.5.1
-# matplotlib>=2.0.2
-numpy>=1.14.0
-scipy>=1.0.0
-tqdm
+cycler
 sounddevice
-Unidecode
-inflect
-# PyQt5
+tensorflow<=1.15.2
+matplotlib
+umap_learn
+phkit>=0.2.1
+tqdm
+librosa
+pydub
+visdom
 numba
-pypinyin
-aukit
-phkit
+webrtcvad
+numpy
+aukit>=1.3.12
+scipy
+multiprocess
+PyQt5
+PyYAML
+scikit_learn
+torch
+umap

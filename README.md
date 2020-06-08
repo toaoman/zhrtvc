@@ -5,7 +5,7 @@ Zhongwen Real Time Voice Cloning
 
 ### 版本
 
-v1.1.4
+v1.1.5
 
 详见[readme](zhrtvc/README.md)
 
@@ -15,6 +15,41 @@ v1.1.4
 链接: https://pan.baidu.com/s/1TQwgzEIxD2VBrVZKCblN1g 
 
 提取码: 8ucd
+
+
+* 中文开源文本语音对齐语料
+
+* name: **zhvoice**
+
+[智浪淘沙](https://github.com/zhilangtaosha)处理和分享。
+中文文本语音对齐语料，多个中文的开源语音数据经过降噪和去除静音操作处理而成。
+
+链接: https://pan.baidu.com/s/1hUeenqfXaMlbnlfN1xmlnw
+提取码: k1ng
+
+* 中文开源语料训练的语音合成器模型
+
+* name: **logs-synx.zip**
+
+[智浪淘沙](https://github.com/zhilangtaosha)训练和分享。
+
+用中文的文本语音平行语料训练得到的语音合成器模型。
+
+链接: https://pan.baidu.com/s/1ovtu1n3eF7y0JzSxstQC7w
+
+提取码: f4jx
+
+
+* 中文开源语音训练的语音编码器模型
+* name: **ge2e_pretrained_iwater.pt**
+
+[iwater](https://github.com/iwater)训练和分享。
+
+用中文开源语音语料训练的语音编码器模型。
+
+链接: https://pan.baidu.com/s/1ovtu1n3eF7y0JzSxstQC7w
+
+提取码: f4jx
 
 
 * **toolbox**
