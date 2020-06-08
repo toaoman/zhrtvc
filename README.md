@@ -10,16 +10,16 @@ v1.1.5
 详见[readme](zhrtvc/README.md)
 
 
-#### 原始语音和克隆语音对比样例
+**原始语音和克隆语音对比样例**
 
 链接: https://pan.baidu.com/s/1TQwgzEIxD2VBrVZKCblN1g 
 
 提取码: 8ucd
 
 
-####  中文开源文本语音对齐语料
+**中文开源文本语音对齐语料**
 
-name: **zhvoice**
+name: zhvoice
 
 [智浪淘沙](https://github.com/zhilangtaosha)处理和分享。
 
@@ -28,9 +28,9 @@ name: **zhvoice**
 链接: https://pan.baidu.com/s/1hUeenqfXaMlbnlfN1xmlnw
 提取码: k1ng
 
-####  中文开源语料训练的语音合成器模型
+**中文开源语料训练的语音合成器模型**
 
-name: **logs-synx.zip**
+name: logs-synx.zip
 
 [智浪淘沙](https://github.com/zhilangtaosha)训练和分享。
 
@@ -41,9 +41,9 @@ name: **logs-synx.zip**
 提取码: f4jx
 
 
-#### 中文开源语音训练的语音编码器模型
+**中文开源语音训练的语音编码器模型**
 
-name: **ge2e_pretrained_iwater.pt**
+name: ge2e_pretrained_iwater.pt
 
 [iwater](https://github.com/iwater)训练和分享。
 
@@ -54,12 +54,12 @@ name: **ge2e_pretrained_iwater.pt**
 提取码: f4jx
 
 
-* **toolbox**
+**toolbox**
 
 ![toolbox](files/toolbox.png "toolbox")
 
 
-* **合成样例**
+**合成样例**
 
 [aliaudio-Aibao-004113.wav](files/aliaudio-Aibao-004113.wav)
 
@@ -74,7 +74,7 @@ name: **ge2e_pretrained_iwater.pt**
 [aliaudio-Aiwei-009461.wav](files/aliaudio-Aiwei-009461.wav)
 
 
-* **注意**
+**注意**
 
 跑提供的模型建议用Griffin-Lim声码器，目前MelGAN和WaveRNN没有完全适配。
 
