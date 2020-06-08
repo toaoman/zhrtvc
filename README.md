@@ -1,14 +1,17 @@
 ![zhrtvc](zhrtvc.png "zhrtvc")
 
 # zhrtvc
-Zhongwen Real Time Voice Cloning
+Chinese Real Time Voice Cloning
+
+tips: 中文或汉语的语言缩写简称是【zh】。
 
 ### 版本
 
 v1.1.5
 
-详见[readme](zhrtvc/README.md)
+使用说明和注意事项详见[readme](zhrtvc/README.md)
 
+tips: 需要进入zhrtvc项目的代码子目录【zhrtvc】运行代码。
 
 + **原始语音和克隆语音对比样例**
 
