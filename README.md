@@ -10,26 +10,27 @@ v1.1.5
 详见[readme](zhrtvc/README.md)
 
 
-* **原始语音和克隆语音对比样例**
+#### 原始语音和克隆语音对比样例
 
 链接: https://pan.baidu.com/s/1TQwgzEIxD2VBrVZKCblN1g 
 
 提取码: 8ucd
 
 
-* 中文开源文本语音对齐语料
+####  中文开源文本语音对齐语料
 
-* name: **zhvoice**
+name: **zhvoice**
 
 [智浪淘沙](https://github.com/zhilangtaosha)处理和分享。
+
 中文文本语音对齐语料，多个中文的开源语音数据经过降噪和去除静音操作处理而成。
 
 链接: https://pan.baidu.com/s/1hUeenqfXaMlbnlfN1xmlnw
 提取码: k1ng
 
-* 中文开源语料训练的语音合成器模型
+####  中文开源语料训练的语音合成器模型
 
-* name: **logs-synx.zip**
+name: **logs-synx.zip**
 
 [智浪淘沙](https://github.com/zhilangtaosha)训练和分享。
 
@@ -40,8 +41,9 @@ v1.1.5
 提取码: f4jx
 
 
-* 中文开源语音训练的语音编码器模型
-* name: **ge2e_pretrained_iwater.pt**
+#### 中文开源语音训练的语音编码器模型
+
+name: **ge2e_pretrained_iwater.pt**
 
 [iwater](https://github.com/iwater)训练和分享。
 
@@ -92,7 +94,7 @@ v1.1.5
 
 预训练的模型在百度网盘下载，下载后解压，替换models文件夹即可。
 
-* **样本模型**
+**样本模型**
 
 链接：https://pan.baidu.com/s/14hmJW7sY5PYYcCFAbqV0Kw 
 
@@ -106,7 +108,7 @@ v1.1.5
 
 语料样例在百度网盘下载，下载后解压，替换data文件夹即可。
 
-* **样本数据**
+**样本数据**
 
 链接：https://pan.baidu.com/s/1Q_WUrmb7MW_6zQSPqhX9Vw 
 
