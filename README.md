@@ -29,6 +29,7 @@ name: zhvoice
 中文文本语音对齐语料，多个中文的开源语音数据经过降噪和去除静音操作处理而成。
 
 链接: https://pan.baidu.com/s/1hUeenqfXaMlbnlfN1xmlnw
+
 提取码: k1ng
 
 + **中文开源语料训练的语音合成器模型**
