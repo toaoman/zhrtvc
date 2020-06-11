@@ -22,7 +22,7 @@ tips: 需要进入zhrtvc项目的代码子目录【zhrtvc】运行代码。
 
 + **中文语音语料**
 
-中文语音语料[zhvoice](https://github.com/KuangDD/zhvoice)，语音更加清晰自然，包含8个开源数据集，900小时语音，1300万字。
+中文语音语料[zhvoice](https://github.com/KuangDD/zhvoice)，语音更加清晰自然，包含8个开源数据集，3200个说话人，900小时语音，1300万字。
 
 zhvoice语料可用于训练语音克隆的基础模型。
 
