@@ -3,7 +3,7 @@
 # zhrtvc
 Chinese Real Time Voice Cloning
 
-tips: 中文或汉语的语言缩写简称是【zh】。
+tips: 中文或汉语的语言缩写简称是**zh**。
 
 ### 版本
 
@@ -20,19 +20,13 @@ tips: 需要进入zhrtvc项目的代码子目录【zhrtvc】运行代码。
 提取码: 8ucd
 
 
-+ **中文开源文本语音对齐语料**
++ **中文语音语料**
 
-name: zhvoice
+中文语音语料[zhvoice](https://github.com/KuangDD/zhvoice)，语音更加清晰自然，包含8个开源数据集，900小时语音，1300万字。
 
-[智浪淘沙](https://github.com/zhilangtaosha)处理和分享。
+zhvoice语料可用于训练语音克隆的基础模型。
 
-中文文本语音对齐语料，多个中文的开源语音数据经过降噪和去除静音操作处理而成。
-
-链接: https://pan.baidu.com/s/1hUeenqfXaMlbnlfN1xmlnw
-
-提取码: k1ng
-
-+ **中文开源语料训练的语音合成器模型**
++ **中文语音语料训练的语音合成器模型**
 
 name: logs-synx.zip
 
