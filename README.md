@@ -47,9 +47,9 @@ name: ge2e_pretrained_iwater.pt
 
 用中文开源语音语料训练的语音编码器模型。
 
-链接: https://pan.baidu.com/s/1ovtu1n3eF7y0JzSxstQC7w
+链接: https://pan.baidu.com/s/1-5r_YXQOg2vZnuEh1Slxaw
 
-提取码: f4jx
+提取码:19kh
 
 
 + **toolbox**
