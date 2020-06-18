@@ -5,6 +5,8 @@ Chinese Real Time Voice Cloning
 
 tips: 中文或汉语的语言缩写简称是**zh**。
 
+关注【**啊啦嘻哈**】微信公众号（扫描KuangDD头像二维码），回复一个字【**听**】，小萝莉有话对你说^v^
+
 ### 版本
 
 v1.1.5
