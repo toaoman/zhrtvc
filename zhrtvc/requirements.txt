@@ -5,7 +5,7 @@ matplotlib
 umap_learn
 phkit>=0.2.2
 tqdm
-numba<=0.48
+numba==0.48
 aukit>=1.4.2
 librosa
 pydub
