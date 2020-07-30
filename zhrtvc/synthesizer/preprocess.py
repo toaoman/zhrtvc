@@ -56,13 +56,10 @@ def preprocess_user(datasets_root: Path, out_dir: Path, n_processes: int,
     目录格式样例：
     datasets_root: E:\data\biaobei
     子目录为：biaobei
-
     音频目录为：biaobei/wavs
     音频文件为：000001.wav
-
     文本路径为：biaobei/metadata.csv
     文本样式为：000001	卡尔普陪外孙玩滑梯。
-
     :param datasets_root:
     :param out_dir:
     :param n_processes:
@@ -238,7 +235,7 @@ def process_utterance(wav_fpath: np.ndarray, text: str, out_dir: Path, basename:
     # For you not to lose your head if you ever wish to change things here or implement your own
     # synthesizer.
     # - Both the audios and the mel spectrograms are saved as numpy arrays
-    # - There is no processing done to the audios that will be saved to disk beyond volume  
+    # - There is no processing done to the audios that will be saved to disk beyond volume
     #   normalization (in split_on_silences)
     # - However, pre-emphasis is applied to the audios before computing the mel spectrogram. This
     #   is why we re-apply it on the audio on the side of the vocoder.
@@ -285,7 +282,7 @@ def embed_utterance(fpaths, encoder_model_fpath, hparams):
     if embed_fpath.exists():
         return
     # wav = np.load(wav_fpath)
-    wav, _ = librosa.load(wav_fpath, hparams.sample_rate)
+    wav, _ = librosa.load(str(wav_fpath), hparams.sample_rate)
     if hparams.rescale:
         wav = wav / np.abs(wav).max() * hparams.rescaling_max
 

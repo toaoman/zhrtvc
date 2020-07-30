@@ -19,12 +19,12 @@ class Synthesizer:
         """
         Creates a synthesizer ready for inference. The actual model isn't loaded in memory until
         needed or until load() is called.
-        
+
         :param checkpoints_dir: path to the directory containing the checkpoint file as well as the
         weight files (.data, .index and .meta files)
         :param verbose: if False, only tensorflow's output will be printed TODO: suppress them too
-        :param low_mem: if True, the model will be loaded in a separate process and its resources 
-        will be released after each usage. Adds a large overhead, only recommended if your GPU 
+        :param low_mem: if True, the model will be loaded in a separate process and its resources
+        will be released after each usage. Adds a large overhead, only recommended if your GPU
         memory is low (<= 2gb)
         """
         self.hparams = hparams or default_hparams
@@ -65,13 +65,12 @@ class Synthesizer:
                                 return_alignments=False):
         """
         Synthesizes mel spectrograms from texts and speaker embeddings.
-
         :param texts: a list of N text prompts to be synthesized
-        :param embeddings: a numpy array or list of speaker embeddings of shape (N, 256) 
-        :param return_alignments: if True, a matrix representing the alignments between the 
+        :param embeddings: a numpy array or list of speaker embeddings of shape (N, 256)
+        :param return_alignments: if True, a matrix representing the alignments between the
         characters
         and each decoder output step will be returned for each spectrogram
-        :return: a list of N melspectrograms as numpy arrays of shape (80, Mi), where Mi is the 
+        :return: a list of N melspectrograms as numpy arrays of shape (80, Mi), where Mi is the
         sequence length of spectrogram i, and possibly the alignments.
         """
         if not self._low_mem:
@@ -80,8 +79,8 @@ class Synthesizer:
                 self.load()
             specs, alignments = self._model.my_synthesize(embeddings, texts)
         else:
-            # Low memory inference mode: load the model upon every request. The model has to be 
-            # loaded in a separate process to be able to release GPU memory (a simple workaround 
+            # Low memory inference mode: load the model upon every request. The model has to be
+            # loaded in a separate process to be able to release GPU memory (a simple workaround
             # to tensorflow's intricacies)
             specs, alignments = Pool(1).starmap(Synthesizer._one_shot_synthesize_spectrograms,
                                                 [(self.checkpoint_fpath, embeddings, texts)])[0]
@@ -110,10 +109,10 @@ class Synthesizer:
     def load_preprocess_wav(fpath, hparams=None):
         """
         Loads and preprocesses an audio file under the same conditions the audio files were used to
-        train the synthesizer. 
+        train the synthesizer.
         """
         hparams = hparams or default_hparams
-        wav = librosa.load(fpath, hparams.sample_rate)[0]
+        wav = librosa.load(str(fpath), hparams.sample_rate)[0]
         if hparams.rescale:
             wav = wav / np.abs(wav).max() * hparams.rescaling_max
         return wav
@@ -121,7 +120,7 @@ class Synthesizer:
     @staticmethod
     def make_spectrogram(fpath_or_wav: Union[str, Path, np.ndarray], hparams=None):
         """
-        Creates a mel spectrogram from an audio file in the same manner as the mel spectrograms that 
+        Creates a mel spectrogram from an audio file in the same manner as the mel spectrograms that
         were fed to the synthesizer when training.
         """
         hparams = hparams or default_hparams
