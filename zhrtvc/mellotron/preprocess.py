@@ -20,6 +20,7 @@ from data_utils import TextMelLoader
 from hparams import create_hparams
 
 hp = create_hparams()
+
 metadata_path = None
 text_mel_loader = None
 output_dir = None

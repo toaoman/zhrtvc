@@ -4,35 +4,37 @@
 # date: 2020/2/18
 """
 """
-from phkit import text2sequence, sequence2phoneme, phoneme2sequence
-from phkit import symbol_chinese as symbols
-from phkit.pinyinkit import split_pinyin, text2pinyin
-from phkit.chinese.phoneme import shengyun2ph_dict
-from phkit.chinese.sequence import pinyin2phoneme, change_diao
+from phkit.chinese import text_to_sequence, sequence_to_text
 
-
-def text_to_sequence(text, cleaner_names, dictionary=None, p_arpabet=1.0):
-    """
-    文本样例：ka3 er3 pu3 pei2 wai4 sun1 wan2 hua2 ti1 .
-    :param src: str,拼音字符串
-    :return: list,ID列表
-    """
-    src = text
-    pys = []
-    for py in src.split():
-        if py.isalnum():
-            pys.append(py)
-        else:
-            pys.append((py,))
-    phs = pinyin2phoneme(pys)
-    phs = change_diao(phs)
-    seq = phoneme2sequence(phs)
-    return seq
-
-
-def sequence_to_text(src):
-    out = sequence2phoneme(src)
-    return "".join(out)
+# from phkit import text2sequence, sequence2phoneme, phoneme2sequence
+# from phkit import symbol_chinese as symbols
+# from phkit.pinyinkit import split_pinyin, text2pinyin
+# from phkit.chinese.phoneme import shengyun2ph_dict
+# from phkit.chinese.sequence import pinyin2phoneme, change_diao
+#
+#
+# def text_to_sequence(text, cleaner_names, dictionary=None, p_arpabet=1.0):
+#     """
+#     文本样例：ka3 er3 pu3 pei2 wai4 sun1 wan2 hua2 ti1 .
+#     :param src: str,拼音字符串
+#     :return: list,ID列表
+#     """
+#     src = text
+#     pys = []
+#     for py in src.split():
+#         if py.isalnum():
+#             pys.append(py)
+#         else:
+#             pys.append((py,))
+#     phs = pinyin2phoneme(pys)
+#     phs = change_diao(phs)
+#     seq = phoneme2sequence(phs)
+#     return seq
+#
+#
+# def sequence_to_text(src):
+#     out = sequence2phoneme(src)
+#     return "".join(out)
 
 
 if __name__ == "__main__":

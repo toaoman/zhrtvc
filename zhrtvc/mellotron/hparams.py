@@ -2,7 +2,8 @@
 from text.symbols import symbols
 from aukit import Dict2Obj
 
-def create_hparams(hparams_string=None, verbose=False):
+
+def create_hparams(hparams_string=None, verbose=False, level=2):
     """Create model hyperparameters. Parse nondefault from given string."""
 
     # hparams = tf.contrib.training.HParams(
@@ -25,8 +26,10 @@ def create_hparams(hparams_string=None, verbose=False):
         ################################
         # Data Parameters             #
         ################################
-        training_files=r"F:\github\zhrtvc\data\SV2TTS\mellotron\train.txt",#'filelists/ljs_audiopaths_text_sid_train_filelist.txt',
-        validation_files=r"F:\github\zhrtvc\data\SV2TTS\mellotron\validation.txt",#'filelists/ljs_audiopaths_text_sid_val_filelist.txt',
+        training_files=r"F:\github\zhrtvc\data\SV2TTS\mellotron\train.txt",
+        # 'filelists/ljs_audiopaths_text_sid_train_filelist.txt',
+        validation_files=r"F:\github\zhrtvc\data\SV2TTS\mellotron\validation.txt",
+        # 'filelists/ljs_audiopaths_text_sid_val_filelist.txt',
         text_cleaners=['english_cleaners'],
         p_arpabet=1.0,
         cmudict_path=None,  # "data/cmu_dictionary",
@@ -35,7 +38,7 @@ def create_hparams(hparams_string=None, verbose=False):
         # Audio Parameters             #
         ################################
         max_wav_value=32768.0,
-        sampling_rate=22050,
+        sampling_rate=22050,  # 22050,
         filter_length=1024,
         hop_length=256,
         win_length=1024,
@@ -50,17 +53,17 @@ def create_hparams(hparams_string=None, verbose=False):
         # Model Parameters             #
         ################################
         n_symbols=len(symbols),
-        symbols_embedding_dim=512,
+        symbols_embedding_dim=128 * level,  # 512,
 
         # Encoder parameters
         encoder_kernel_size=5,
         encoder_n_convolutions=3,
-        encoder_embedding_dim=512,
+        encoder_embedding_dim=128 * level,  # 512,
 
         # Decoder parameters
         n_frames_per_step=1,  # currently only 1 is supported
-        decoder_rnn_dim=1024,
-        prenet_dim=256,
+        decoder_rnn_dim=256 * level,  # 1024,
+        prenet_dim=64 * level,  # 256,
         prenet_f0_n_layers=1,
         prenet_f0_dim=1,
         prenet_f0_kernel_size=1,
@@ -73,32 +76,33 @@ def create_hparams(hparams_string=None, verbose=False):
         p_teacher_forcing=1.0,
 
         # Attention parameters
-        attention_rnn_dim=1024,
-        attention_dim=128,
+        attention_rnn_dim=256 * level,  # 1024,
+        attention_dim=32 * level,  # 128,
 
         # Location Layer parameters
-        attention_location_n_filters=32,
+        attention_location_n_filters=8 * level,  # 32,
         attention_location_kernel_size=31,
 
         # Mel-post processing network parameters
-        postnet_embedding_dim=512,
+        postnet_embedding_dim=128 * level,  # 512,
         postnet_kernel_size=5,
         postnet_n_convolutions=5,
 
         # Speaker embedding
         n_speakers=123,
-        speaker_embedding_dim=128,
+        speaker_embedding_dim=32 * level,  # 128,
 
         # Reference encoder
         with_gst=True,
-        ref_enc_filters=[32, 32, 64, 64, 128, 128],
+        ref_enc_filters=[8 * level, 8 * level, 16 * level, 16 * level, 32 * level, 32 * level],
+        # [32, 32, 64, 64, 128, 128],
         ref_enc_size=[3, 3],
         ref_enc_strides=[2, 2],
         ref_enc_pad=[1, 1],
-        ref_enc_gru_size=128,
+        ref_enc_gru_size=32 * level,  # 128,
 
         # Style Token Layer
-        token_embedding_size=256,
+        token_embedding_size=64 * level,  # 256,
         token_num=10,
         num_heads=8,
 
@@ -111,7 +115,7 @@ def create_hparams(hparams_string=None, verbose=False):
         learning_rate_anneal=50000,
         weight_decay=1e-6,
         grad_clip_thresh=1.0,
-        batch_size=32, #32,
+        batch_size=32,  # 32,
         mask_padding=True,  # set model's padded outputs to padded values
 
     ))
