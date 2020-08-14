@@ -18,6 +18,15 @@ import argparse
 import time
 import torch
 import sys
+import shutil
+import json
+
+from toolbox.sentence import xinqing_texts
+
+example_texts = xinqing_texts
+
+sample_dir = Path(r"../files")
+reference_paths = [w for w in sorted(sample_dir.glob('*.wav'))]
 
 if __name__ == '__main__':
     ## Info & args
@@ -43,8 +52,8 @@ if __name__ == '__main__':
         "If True, audio won't be played.")
     args = parser.parse_args()
     print_args(args, parser)
-    if not args.no_sound:
-        import sounddevice as sd
+    # if not args.no_sound:
+    #     import sounddevice as sd
 
     ## Print some environment information (for debugging purposes)
     print("Running a test of your configuration...\n")
@@ -79,7 +88,7 @@ if __name__ == '__main__':
 
     mel = np.concatenate(mels, axis=1)
     no_action = lambda *args: None
-    generated_wav = audio.inv_mel_spectrogram(mel, hparams.hparams)
+    generated_wav = audio.inv_mel_spectrogram(mel, hparams=hparams.hparams)
     print("All test passed! You can now synthesize speech.\n\n")
 
     print("Interactive generation loop")
@@ -90,7 +99,11 @@ if __name__ == '__main__':
             # Get the reference audio filepath
             message = "Reference voice: enter an audio filepath of a voice to be cloned (mp3, " \
                       "wav, m4a, flac, ...):\n"
-            in_fpath = Path(input(message).replace("\"", "").replace("\'", ""))
+            ref = input(message)
+            in_fpath = Path(ref.replace("\"", "").replace("\'", ""))
+            if not in_fpath.is_file():
+                in_fpath = np.random.choice(reference_paths)
+            print('Reference audio: {}'.format(in_fpath))
             # - Directly load from the filepath:
             preprocessed_wav = encoder.preprocess_wav(in_fpath)
             print("Loaded file succesfully")
@@ -101,6 +114,10 @@ if __name__ == '__main__':
             ## Generating the spectrogram
             text = input("Write a sentence (+-20 words) to be synthesized:\n")
 
+            if not text.strip():
+                text = np.random.choice(example_texts)
+
+            print('Text: {}'.format(text))
             # The synthesizer works in batch, so you need to put your data in a list or numpy array
             texts = [text]
             embeds = [embed]
@@ -112,19 +129,31 @@ if __name__ == '__main__':
             ## Generating the waveform
             print("Synthesizing the waveform:")
 
-            generated_wav = audio.inv_mel_spectrogram(spec, hparams.hparams)
-
-            generated_wav = np.pad(generated_wav, (0, synthesizer.sample_rate), mode="constant")
+            generated_wav = audio.inv_mel_spectrogram(spec, hparams=hparams.hparams)
+            # generated_wav = synthesizer.griffin_lim(spec, hparams=synthesizer.hparams)
+            # generated_wav = np.pad(generated_wav, (0, synthesizer.sample_rate), mode="constant")
 
             # Play the audio (non-blocking)
-            if not args.no_sound:
-                sd.stop()
-                sd.play(generated_wav, synthesizer.sample_rate)
-                sd.wait()
+            # if not args.no_sound:
+            #     sd.stop()
+            #     sd.play(generated_wav, synthesizer.sample_rate)
+            #     sd.wait()
 
             # Save it on the disk
-            fpath = args.out_dir.joinpath("demo_output_{}.wav".format(time.strftime('%Y%m%d_%H%M%S')))
-            librosa.output.write_wav(fpath, generated_wav.astype(np.float32), synthesizer.sample_rate)
+            cur_time = time.strftime('%Y%m%d_%H%M%S')
+            fpath = args.out_dir.joinpath("demo_out_{}.wav".format(cur_time))
+            # librosa.output.write_wav(fpath, generated_wav.astype(np.float32), synthesizer.sample_rate)
+            audio.save_wav(generated_wav, fpath, synthesizer.sample_rate)  # save
+
+            ref_path = args.out_dir.joinpath("demo_ref_{}.mp3".format(cur_time))
+            shutil.copyfile(in_fpath, ref_path)
+
+            txt_path = args.out_dir.joinpath("info_dict.txt".format(cur_time))
+            with open(txt_path, 'at', encoding='utf8') as fout:
+                dt = dict(text=text, audio_path=str(fpath), reference_path=str(in_fpath), time=cur_time)
+                out = json.dumps(dt, ensure_ascii=False)
+                fout.write('{}\n'.format(out))
+
             num_generated += 1
             print("\nSaved output as %s\n\n" % fpath)
         except Exception as e:

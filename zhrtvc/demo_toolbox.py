@@ -5,7 +5,7 @@ config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 
 from pathlib import Path
-from toolbox import Toolbox
+from toolbox.core import Toolbox
 from utils.argutils import print_args
 import argparse
 
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     )
 
     parser.add_argument("-d", "--datasets_root", type=Path, help= \
-        "Path to the directory containing your datasets. See toolbox/__init__.py for a list of "
+        "Path to the directory containing your datasets. See toolbox/core.py for a list of "
         "supported datasets. You can add your own data by created a directory named UserAudio "
         "in your datasets root. Supported formats are mp3, flac, wav and m4a. Each speaker should "
         "be inside a directory, e.g. <datasets_root>/UserAudio/speaker_01/audio_01.wav.",
