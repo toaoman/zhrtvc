@@ -1,8 +1,9 @@
-from tensorflow.contrib.training import HParams
+# from tensorflow.contrib.training import HParams
+from aukit.audio_io import Dict2Obj
 
 one = 64
 # Default hyperparameters
-hparams = HParams(
+hparams = Dict2Obj(dict(
     encoder_path=r"../models/encoder/saved_models/ge2e_pretrained.pt",
     # Comma-separated list of cleaners to run on text prior to training and eval. For non-English
     # text, you may want to use "basic_cleaners" or "transliteration_cleaners".
@@ -322,10 +323,10 @@ hparams = HParams(
     speaker_embedding_size=256,
     silence_min_duration_split=0.4,  # Duration in seconds of a silence for an utterance to be split
     utterance_min_duration=1.,  # Duration in seconds below which utterances are discarded
-)
+))
 
 
 def hparams_debug_string():
-    values = hparams.values()
-    hp = ["  %s: %s" % (name, values[name]) for name in sorted(values) if name != "sentences"]
+    # values = hparams.values()
+    hp = ["  %s: %s" % (key, value) for key, value in hparams.items()]
     return "Hyperparameters:\n" + "\n".join(hp)

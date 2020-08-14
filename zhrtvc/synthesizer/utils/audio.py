@@ -10,19 +10,22 @@ from aukit.audio_griffinlim import default_hparams
 
 _sr = 22050
 my_hp = {
-    "n_fft": 1024, "hop_size": 256, "win_size": 1024,
-    "sample_rate": _sr,
-    "fmin": 0, "fmax": _sr // 2,
-    "preemphasize": False,
-    'symmetric_mels': True,
-    'signal_normalization': False,
-    'allow_clipping_in_normalization': False,
-    'ref_level_db': 0,
+    "n_fft": 1024,  # 800
+    "hop_size": 256,  # 200
+    "win_size": 1024,  # 800
+    "sample_rate": _sr,  # 16000
+    "fmin": 0,  # 55
+    "fmax": _sr // 2,  # 7600
+    "preemphasize": False,  # True
+    'symmetric_mels': True,  # True
+    'signal_normalization': False,  # True
+    'allow_clipping_in_normalization': False,  # True
+    'ref_level_db': 0,  # 20
     '__file__': __file__
 }
 
 melgan_hparams = {}
-melgan_hparams.update(default_hparams)
+melgan_hparams.update({k: v for k, v in default_hparams.items()})
 melgan_hparams.update(my_hp)
 melgan_hparams = Dict2Obj(melgan_hparams)
 

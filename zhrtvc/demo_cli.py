@@ -88,7 +88,8 @@ if __name__ == '__main__':
 
     mel = np.concatenate(mels, axis=1)
     no_action = lambda *args: None
-    generated_wav = audio.inv_mel_spectrogram(mel, hparams=hparams.hparams)
+
+    generated_wav = audio.inv_melspectrogram(mel, hparams=audio.melgan_hparams)
     print("All test passed! You can now synthesize speech.\n\n")
 
     print("Interactive generation loop")
@@ -129,7 +130,7 @@ if __name__ == '__main__':
             ## Generating the waveform
             print("Synthesizing the waveform:")
 
-            generated_wav = audio.inv_mel_spectrogram(spec, hparams=hparams.hparams)
+            generated_wav = audio.inv_melspectrogram(spec, hparams=audio.melgan_hparams)
             # generated_wav = synthesizer.griffin_lim(spec, hparams=synthesizer.hparams)
             # generated_wav = np.pad(generated_wav, (0, synthesizer.sample_rate), mode="constant")
 
