@@ -16,7 +16,7 @@ def float_2_label(x, bits) :
 
 
 def load_wav(path) :
-    return librosa.load(path, sr=hp.sample_rate)[0]
+    return librosa.load(str(path), sr=hp.sample_rate)[0]
 
 
 def save_wav(x, path) :
@@ -99,9 +99,8 @@ def encode_mu_law(x, mu) :
 
 
 def decode_mu_law(y, mu, from_labels=True) :
-    if from_labels: 
+    if from_labels:
         y = label_2_float(y, math.log2(mu))
     mu = mu - 1
     x = np.sign(y) / mu * ((1 + mu) ** np.abs(y) - 1)
     return x
-
