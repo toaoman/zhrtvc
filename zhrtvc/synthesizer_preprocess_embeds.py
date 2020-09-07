@@ -19,7 +19,7 @@ if __name__ == "__main__":
         "Number of parallel processes. An encoder is created for each, so you may need to lower "
         "this value on GPUs with low memory. Set it to 1 if CUDA is unhappy.")
     parser.add_argument("--hparams", type=str, default="", help= \
-        "Hyperparameter overrides as a comma-separated list of name-value pairs")
+        "Hyperparameter overrides as a json string, for example: '\"key1\":123,\"key2\":true'")
     args = parser.parse_args()
 
     # Preprocess the dataset

@@ -50,7 +50,7 @@ if __name__ == "__main__":
     parser.add_argument("--slack_url", default=None,
                         help="slack webhook notification destination link")
     parser.add_argument("--hparams", default="",
-                        help="Hyperparameter overrides as a comma-separated list of name=value pairs")
+                        help="Hyperparameter overrides as a json string, for example: '\"key1\":123,\"key2\":true'")
     args = parser.parse_args()
     print_args(args, parser)
 

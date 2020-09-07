@@ -24,7 +24,7 @@ if __name__ == "__main__":
         "Whether to overwrite existing files with the same name. Useful if the preprocessing was "
         "interrupted.")
     parser.add_argument("--hparams", type=str, default="", help= \
-        "Hyperparameter overrides as a comma-separated list of name-value pairs")
+        "Hyperparameter overrides as a json string, for example: '\"key1\":123,\"key2\":true'")
     args = parser.parse_args()
 
     # Process the arguments

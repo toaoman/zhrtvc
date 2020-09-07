@@ -1,5 +1,28 @@
 # from tensorflow.contrib.training import HParams
-from aukit.audio_io import Dict2Obj
+# from aukit.audio_io import Dict2Obj
+from dotmap import DotMap
+import json
+
+
+class Dict2Obj(DotMap):
+    """
+    修正DotMap的get方法生成DotMap对象的bug。
+    Dict2Obj的get方法和dict的get功能相同。
+    """
+
+    def __getitem__(self, k):
+        if k not in self._map:
+            return None
+        else:
+            return self._map[k]
+
+    def parse(self, json_string):
+        if json_string.strip():
+            _hp = json.loads(json_string)
+            for k, v in _hp.items():
+                self[k] = v
+        return self
+
 
 one = 64
 # Default hyperparameters
