@@ -1,5 +1,5 @@
 # import tensorflow as tf
-from text.symbols import symbols
+# from text.symbols import symbols
 from aukit import Dict2Obj
 
 
@@ -12,7 +12,7 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         # Experiment Parameters        #
         ################################
         epochs=50000,
-        iters_per_checkpoint=500,
+        iters_per_checkpoint=5000,  # 500,
         seed=1234,
         dynamic_loss_scaling=True,
         fp16_run=False,
@@ -52,7 +52,7 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         ################################
         # Model Parameters             #
         ################################
-        n_symbols=len(symbols),
+        n_symbols=145,  # len(symbols),
         symbols_embedding_dim=128 * level,  # 512,
 
         # Encoder parameters
@@ -69,7 +69,7 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         prenet_f0_kernel_size=1,
         prenet_rms_dim=0,
         prenet_rms_kernel_size=1,
-        max_decoder_steps=1000,
+        max_decoder_steps=2000,  # 1000,
         gate_threshold=0.5,
         p_attention_dropout=0.1,
         p_decoder_dropout=0.1,
@@ -90,7 +90,7 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
 
         # Speaker embedding
         n_speakers=123,
-        speaker_embedding_dim=32 * level,  # 128,
+        speaker_embedding_dim=16 * level,  # 32 * level,  # 128,
 
         # Reference encoder
         with_gst=True,
@@ -102,7 +102,7 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         ref_enc_gru_size=32 * level,  # 128,
 
         # Style Token Layer
-        token_embedding_size=64 * level,  # 256,
+        token_embedding_size=16 * level,  # 64 * level,  # 256,
         token_num=10,
         num_heads=8,
 
@@ -120,10 +120,10 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
 
     ))
 
-    # if hparams_string:
-    #     tf.compat.v1.logging.info('Parsing command line hparams: %s', hparams_string)
-    #     hparams.parse(hparams_string)
-    #
+    if hparams_string:
+        # tf.compat.v1.logging.info('Parsing command line hparams: %s', hparams_string)
+        hparams.parse(hparams_string)
+
     # if verbose:
     #     tf.compat.v1.logging.info('Final parsed hparams: %s', hparams.values())
 
