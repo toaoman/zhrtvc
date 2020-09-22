@@ -12,6 +12,8 @@ from utils import load_wav_to_torch, load_filepaths_and_text, load_filepaths_and
 from text import text_to_sequence, cmudict
 from yin import compute_yin
 
+from utils import melspectrogram_torch, linearspectrogram_torch
+
 
 class TextMelLoader(torch.utils.data.Dataset):
     """
@@ -94,20 +96,24 @@ class TextMelLoader(torch.utils.data.Dataset):
 
     def get_mel_and_f0(self, filepath):
         audio, sampling_rate = load_wav_to_torch(filepath)
-        if sampling_rate != self.stft.sampling_rate:
-            raise ValueError("{} SR doesn't match target {} SR".format(
-                sampling_rate, self.stft.sampling_rate))
         audio_norm = audio / self.max_wav_value
-        audio_norm = audio_norm.unsqueeze(0)
-        melspec = self.stft.mel_spectrogram(audio_norm)
-        melspec = torch.squeeze(melspec, 0)
+        # if sampling_rate != self.stft.sampling_rate:
+        #     raise ValueError("{} SR doesn't match target {} SR".format(
+        #         sampling_rate, self.stft.sampling_rate))
+        # audio_norm = audio_norm.unsqueeze(0)
+        # melspec = self.stft.mel_spectrogram(audio_norm)
+        # melspec = torch.squeeze(melspec, 0)
 
-        f0 = self.get_f0(audio.cpu().numpy(), self.sampling_rate,
-                         self.filter_length, self.hop_length, self.f0_min,
-                         self.f0_max, self.harm_thresh)
-        f0 = torch.from_numpy(f0)[None]
-        f0 = f0[:, :melspec.size(1)]
+        melspec = linearspectrogram_torch(audio_norm)  # 用aukit的频谱生成方案
 
+        # f0 = self.get_f0(audio.cpu().numpy(), sampling_rate,
+        #                  self.filter_length, self.hop_length, self.f0_min,
+        #                  self.f0_max, self.harm_thresh)
+        # f0 = torch.from_numpy(f0)[None]
+        # f0 = f0[:, :melspec.size(1)]
+
+        # 用零向量替换F0
+        f0 = torch.zeros(1, melspec.shape[1], dtype=torch.float)
         return melspec, f0
 
     def get_text(self, text):

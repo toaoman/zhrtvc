@@ -51,7 +51,7 @@ from layers import TacotronSTFT
 from data_utils import TextMelLoader, TextMelCollate
 from text import cmudict, text_to_sequence
 from mellotron_utils import get_data_from_musicxml
-
+from utils import inv_linear_spectrogram
 from melgan.inference import load_vocoder_melgan, infer_waveform_melgan
 
 import aukit
@@ -97,10 +97,10 @@ hparams = create_hparams()
 stft = TacotronSTFT(hparams.filter_length, hparams.hop_length, hparams.win_length,
                     hparams.n_mel_channels, hparams.sampling_rate, hparams.mel_fmin,
                     hparams.mel_fmax)
-## Load Models
-checkpoint_path = "models/mellotron_libritts.pt"
+
+model_path = "models/mellotron_libritts.pt"
 mellotron = load_model(hparams).cuda().eval()
-mellotron.load_state_dict(torch.load(checkpoint_path)['state_dict'])
+mellotron.load_state_dict(torch.load(model_path)['state_dict'])
 
 waveglow_path = 'models/waveglow_256channels_v4.pt'
 waveglow = torch.load(waveglow_path)['model'].cuda().eval()
@@ -280,6 +280,7 @@ def style_transfer_v2():
     out_wav = audio[0].data.cpu().numpy()
     print(time.time() - t0)
     aukit.play_audio(out_wav, sr=22050)
+
 
 def singing_voice_v2():
     # Singing Voice from Music Score

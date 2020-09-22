@@ -11,6 +11,8 @@ from modules import GST
 
 drop_rate = 0.5
 _device = 'cpu'
+
+
 def load_model(hparams):
     model = Tacotron2(hparams).to(_device)
     if hparams.fp16_run:
@@ -149,7 +151,7 @@ class Postnet(nn.Module):
                          padding=int((hparams.postnet_kernel_size - 1) / 2),
                          dilation=1, w_init_gain='linear'),
                 nn.BatchNorm1d(hparams.n_mel_channels))
-            )
+        )
 
     def forward(self, x):
         for i in range(len(self.convolutions) - 1):
@@ -164,6 +166,7 @@ class Encoder(nn.Module):
         - Three 1-d convolution banks
         - Bidirectional LSTM
     """
+
     def __init__(self, hparams):
         super(Encoder, self).__init__()
 
@@ -232,7 +235,7 @@ class Decoder(nn.Module):
         self.prenet_f0 = ConvNorm(
             1, hparams.prenet_f0_dim,
             kernel_size=hparams.prenet_f0_kernel_size,
-            padding=max(0, int(hparams.prenet_f0_kernel_size/2)),
+            padding=max(0, int(hparams.prenet_f0_kernel_size / 2)),
             bias=False, stride=1, dilation=1)
 
         self.prenet = Prenet(
@@ -328,7 +331,7 @@ class Decoder(nn.Module):
         decoder_inputs = decoder_inputs.transpose(1, 2)
         decoder_inputs = decoder_inputs.view(
             decoder_inputs.size(0),
-            int(decoder_inputs.size(1)/self.n_frames_per_step), -1)
+            int(decoder_inputs.size(1) / self.n_frames_per_step), -1)
         # (B, T_out, n_mel_channels) -> (T_out, B, n_mel_channels)
         decoder_inputs = decoder_inputs.transpose(0, 1)
         return decoder_inputs
@@ -568,7 +571,7 @@ class Tacotron2(nn.Module):
 
     def parse_batch(self, batch):
         text_padded, input_lengths, mel_padded, gate_padded, \
-            output_lengths, speaker_ids, f0_padded = batch
+        output_lengths, speaker_ids, f0_padded = batch
         text_padded = to_gpu(text_padded).long()
         input_lengths = to_gpu(input_lengths).long()
         max_len = torch.max(input_lengths.data).item()
@@ -595,18 +598,22 @@ class Tacotron2(nn.Module):
 
     def forward(self, inputs):
         inputs, input_lengths, targets, max_len, \
-            output_lengths, speaker_ids, f0s = inputs
+        output_lengths, speaker_ids, f0s = inputs
         input_lengths, output_lengths = input_lengths.data, output_lengths.data
 
         embedded_inputs = self.embedding(inputs).transpose(1, 2)
         embedded_text = self.encoder(embedded_inputs, input_lengths)
         embedded_speakers = self.speaker_embedding(speaker_ids)[:, None]
-        embedded_gst = self.gst(targets)
-        embedded_gst = embedded_gst.repeat(1, embedded_text.size(1), 1)
         embedded_speakers = embedded_speakers.repeat(1, embedded_text.size(1), 1)
 
-        encoder_outputs = torch.cat(
-            (embedded_text, embedded_gst, embedded_speakers), dim=2)
+        if hasattr(self, 'gst'):
+            embedded_gst = self.gst(targets)
+            embedded_gst = embedded_gst.repeat(1, embedded_text.size(1), 1)
+            encoder_outputs = torch.cat(
+                (embedded_text, embedded_gst, embedded_speakers), dim=2)
+        else:
+            encoder_outputs = torch.cat(
+                (embedded_text, embedded_speakers), dim=2)
 
         mel_outputs, gate_outputs, alignments = self.decoder(
             encoder_outputs, targets, memory_lengths=input_lengths, f0s=f0s)
@@ -625,7 +632,7 @@ class Tacotron2(nn.Module):
         embedded_speakers = self.speaker_embedding(speaker_ids)[:, None]
         if hasattr(self, 'gst'):
             if isinstance(style_input, int):
-                query = torch.zeros(1, 1, self.gst.encoder.ref_enc_gru_size).to(_device)#cuda()
+                query = torch.zeros(1, 1, self.gst.encoder.ref_enc_gru_size).to(_device)  # cuda()
                 GST = torch.tanh(self.gst.stl.embed)
                 key = GST[style_input].unsqueeze(0).expand(1, -1, -1)
                 embedded_gst = self.gst.stl.attention(query, key)
@@ -657,7 +664,7 @@ class Tacotron2(nn.Module):
         embedded_speakers = self.speaker_embedding(speaker_ids)[:, None]
         if hasattr(self, 'gst'):
             if isinstance(style_input, int):
-                query = torch.zeros(1, 1, self.gst.encoder.ref_enc_gru_size).to(_device)#cuda()
+                query = torch.zeros(1, 1, self.gst.encoder.ref_enc_gru_size).to(_device)  # cuda()
                 GST = torch.tanh(self.gst.stl.embed)
                 key = GST[style_input].unsqueeze(0).expand(1, -1, -1)
                 embedded_gst = self.gst.stl.attention(query, key)

@@ -1,5 +1,37 @@
 ![Mellotron](mellotron_logo.png "Mellotron")
 
+### 语音克隆走起
+
+#### 修改要点
+
+* 频谱生成采用aukit的方案的。
+* 文本处理采用phkit的方案的。
+* 不用基频信息，基频采用零向量。
+    + 在训练的时候，传入和语音时长对应长度的零向量。
+    + 在合成的时候，预估合成语音的时长，传入时长较长的零向量作为基频即可。
+* 说话人表示延用一个说话人一个向量的方法，使用mellotron的方案。
+* 训练频谱采用线性频谱。
+    + 用aukit的默认参数生成频谱。
+    + Griffinlim声码器用线性频谱。
+    + 神经网络的声码器用线性频谱转的mel频谱。
+* 不用GST模块。
+
+#### 使用方法
+
+* 预处理语音和文本数据，生成训练模型的可用numpy直接load的文件。
+    + 执行mellotron目录下的preprocess.py脚本，可命令行设置参数执行，或者修改默认参数执行。
+    + 执行preprocess.py后，会生成存放频谱、文本编码等数据的目录，同时生成train.txt文本文件。
+
+* 训练语音合成器模型。
+    + 执行mellotron目录下的train.py脚本，可命令行设置参数执行，或者修改默认参数执行。
+    + 执行train.py后，会从train.txt的文本读取数据，不断训练模型。
+
+* 用训练好的语音合成器模型合成频谱，并合成语音。
+    + 执行synthesize.py脚本，设置文本和说话人。
+    + 用Griffinlim声码器合成语音。
+
+
+
 ### Rafael Valle\*, Jason Li\*, Ryan Prenger and Bryan Catanzaro
 In our recent [paper] we propose Mellotron: a multispeaker voice synthesis model
 based on Tacotron 2 GST that can make a voice emote and sing without emotive or

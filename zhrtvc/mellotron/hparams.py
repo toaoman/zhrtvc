@@ -12,7 +12,7 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         # Experiment Parameters        #
         ################################
         epochs=50000,
-        iters_per_checkpoint=5000,  # 500,
+        iters_per_checkpoint=1000,  # 500,
         seed=1234,
         dynamic_loss_scaling=True,
         fp16_run=False,
@@ -26,9 +26,9 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         ################################
         # Data Parameters             #
         ################################
-        training_files=r"F:\github\zhrtvc\data\SV2TTS\mellotron\train.txt",
+        training_files=r"F:\github\zhrtvc\data\SV2TTS\mellotron\linear\train.txt",
         # 'filelists/ljs_audiopaths_text_sid_train_filelist.txt',
-        validation_files=r"F:\github\zhrtvc\data\SV2TTS\mellotron\validation.txt",
+        validation_files=r"F:\github\zhrtvc\data\SV2TTS\mellotron\linear\validation.txt",
         # 'filelists/ljs_audiopaths_text_sid_val_filelist.txt',
         text_cleaners=['english_cleaners'],
         p_arpabet=1.0,
@@ -38,11 +38,11 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         # Audio Parameters             #
         ################################
         max_wav_value=32768.0,
-        sampling_rate=22050,  # 22050,
+        sampling_rate=16000,  # 22050,
         filter_length=1024,
         hop_length=256,
         win_length=1024,
-        n_mel_channels=80,
+        n_mel_channels=401,  # 80,
         mel_fmin=0.0,
         mel_fmax=8000.0,
         f0_min=80,
@@ -93,7 +93,7 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         speaker_embedding_dim=16 * level,  # 32 * level,  # 128,
 
         # Reference encoder
-        with_gst=True,
+        with_gst=False,  # True,
         ref_enc_filters=[8 * level, 8 * level, 16 * level, 16 * level, 32 * level, 32 * level],
         # [32, 32, 64, 64, 128, 128],
         ref_enc_size=[3, 3],
@@ -102,7 +102,7 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         ref_enc_gru_size=32 * level,  # 128,
 
         # Style Token Layer
-        token_embedding_size=16 * level,  # 64 * level,  # 256,
+        token_embedding_size=0,  # 64 * level,  # 256,  # 如果with_gst=False，则手动改为0。
         token_num=10,
         num_heads=8,
 

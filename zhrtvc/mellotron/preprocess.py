@@ -77,11 +77,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("-i", "--metadata_path", type=str, default=r'F:\github\zhrtvc\data\samples\metadata.csv',
                         help="metadata file path")
-    parser.add_argument("-o", "--output_dir", type=Path, default=Path(r'F:\github\zhrtvc\data\SV2TTS\mellotron\npy'),
+    parser.add_argument("-o", "--output_dir", type=Path, default=Path(r'F:\github\zhrtvc\data\SV2TTS\mellotron\linear\npy'),
                         help="Path to the output directory")
     parser.add_argument("-n", "--n_processes", type=int, default=0,
                         help="Number of processes in parallel.")
-    parser.add_argument("-s", "--skip_existing", type=bool, default=True,
+    parser.add_argument("-s", "--skip_existing", type=bool, default=False,
                         help="Whether to overwrite existing files with the same name. ")
     parser.add_argument("--hparams", type=str, default="",
                         help="Hyperparameter overrides as a comma-separated list of name-value pairs")

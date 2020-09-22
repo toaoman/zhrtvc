@@ -15,8 +15,14 @@ from data_utils import TextMelLoader, TextMelCollate
 from loss_function import Tacotron2Loss
 from logger import Tacotron2Logger
 from hparams import create_hparams
+from utils import inv_linearspectrogram
+
+from pathlib import Path
+import matplotlib.pyplot as plt
+import aukit
 
 _device = 'cpu'
+
 
 def reduce_tensor(tensor, n_gpus):
     rt = tensor.clone()
@@ -95,7 +101,7 @@ def load_checkpoint(checkpoint_path, model, optimizer):
     optimizer.load_state_dict(checkpoint_dict['optimizer'])
     learning_rate = checkpoint_dict['learning_rate']
     iteration = checkpoint_dict['iteration']
-    print("Loaded checkpoint '{}' from iteration {}" .format(
+    print("Loaded checkpoint '{}' from iteration {}".format(
         checkpoint_path, iteration))
     return model, optimizer, learning_rate, iteration
 
@@ -110,8 +116,9 @@ def save_checkpoint(model, optimizer, learning_rate, iteration, filepath):
 
 
 def validate(model, criterion, valset, iteration, batch_size, n_gpus,
-             collate_fn, logger, distributed_run, rank):
+             collate_fn, logger, distributed_run, rank, outdir=Path()):
     """Handles all the validation scoring and printing"""
+    save_flag = True
     model.eval()
     with torch.no_grad():
         val_sampler = DistributedSampler(valset) if distributed_run else None
@@ -121,9 +128,32 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
 
         val_loss = 0.0
         for i, batch in enumerate(val_loader):
-            x, y = model.parse_batch(batch)
-            y_pred = model(x)
+            x, y = model.parse_batch(batch)  # y: 2部分
+            # y:
+            # torch.Size([4, 401, 439])
+            # torch.Size([4, 439])
+
+            y_pred = model(x)  # y_pred: 4部分
+            # y_pred:
+            # torch.Size([4, 401, 439])
+            # torch.Size([4, 401, 439])
+            # torch.Size([4, 439])
+            # torch.Size([4, 439, 114])
+
+            mel_outputs, mel_outputs_2, gate_outputs, alignments = y_pred
             loss = criterion(y_pred, y)
+            if outdir and save_flag:
+                curdir = outdir.joinpath('validation', f'{iteration:06d}-{loss.data.cpu().numpy():.6f}')
+                curdir.mkdir(exist_ok=True, parents=True)
+                plt.imsave(curdir.joinpath('spectrogram_pred.png'), mel_outputs[0].cpu().numpy())
+                plt.imsave(curdir.joinpath('spectrogram_true.png'), y[0][0].cpu().numpy())
+                plt.imsave(curdir.joinpath('alignment.png'), alignments[0].cpu().numpy())
+                wav_output = inv_linearspectrogram(mel_outputs[0].cpu().numpy())
+                aukit.save_wav(wav_output, curdir.joinpath('griffinlim_pred.wav'), sr=hparams.sampling_rate)
+                wav_output = inv_linearspectrogram(y[0][0].cpu().numpy())
+                aukit.save_wav(wav_output, curdir.joinpath('griffinlim_true.wav'), sr=hparams.sampling_rate)
+                save_flag = False
+
             if distributed_run:
                 reduced_val_loss = reduce_tensor(loss.data, n_gpus).item()
             else:
@@ -241,11 +271,11 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 
             if not is_overflow and (iteration % hparams.iters_per_checkpoint == 0):
                 validate(model, criterion, valset, iteration,
-                        hparams.batch_size, n_gpus, collate_fn, logger,
-                        hparams.distributed_run, rank)
+                         hparams.batch_size, n_gpus, collate_fn, logger,
+                         hparams.distributed_run, rank, outdir=Path(output_directory))
                 if rank == 0:
                     checkpoint_path = os.path.join(
-                        output_directory, "checkpoint_{}".format(iteration))
+                        output_directory, "checkpoint-{:06d}.pt".format(iteration))
                     save_checkpoint(model, optimizer, learning_rate, iteration,
                                     checkpoint_path)
 
@@ -254,7 +284,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', '--output_directory', type=str, default=r'F:\github\zhrtvc\models\mellotron\hello',
+    parser.add_argument('-o', '--output_directory', type=str, default=r'F:\github\zhrtvc\models\mellotron\linear',
                         help='directory to save checkpoints')
     parser.add_argument('-l', '--log_directory', type=str, default='tensorboard',
                         help='directory to save tensorboard logs')
@@ -268,7 +298,7 @@ if __name__ == '__main__':
                         required=False, help='rank of current gpu')
     parser.add_argument('--group_name', type=str, default='group_name',
                         required=False, help='Distributed group name')
-    parser.add_argument('--hparams', type=str,
+    parser.add_argument('--hparams', type=str, default='{"batch_size":4}',
                         required=False, help='comma separated name=value pairs')
 
     args = parser.parse_args()
