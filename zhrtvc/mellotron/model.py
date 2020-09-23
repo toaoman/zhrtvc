@@ -232,11 +232,12 @@ class Decoder(nn.Module):
         self.p_decoder_dropout = hparams.p_decoder_dropout
         self.p_teacher_forcing = hparams.p_teacher_forcing
 
-        self.prenet_f0 = ConvNorm(
-            1, hparams.prenet_f0_dim,
-            kernel_size=hparams.prenet_f0_kernel_size,
-            padding=max(0, int(hparams.prenet_f0_kernel_size / 2)),
-            bias=False, stride=1, dilation=1)
+        if hparams.prenet_f0_dim > 0:
+            self.prenet_f0 = ConvNorm(
+                1, hparams.prenet_f0_dim,
+                kernel_size=hparams.prenet_f0_kernel_size,
+                padding=max(0, int(hparams.prenet_f0_kernel_size / 2)),
+                bias=False, stride=1, dilation=1)
 
         self.prenet = Prenet(
             hparams.n_mel_channels * hparams.n_frames_per_step,
@@ -434,12 +435,12 @@ class Decoder(nn.Module):
         decoder_inputs = self.parse_decoder_inputs(decoder_inputs)
         decoder_inputs = torch.cat((decoder_input, decoder_inputs), dim=0)
         decoder_inputs = self.prenet(decoder_inputs)
-
-        # audio features
-        f0_dummy = self.get_end_f0(f0s)
-        f0s = torch.cat((f0s, f0_dummy), dim=2)
-        f0s = F.relu(self.prenet_f0(f0s))
-        f0s = f0s.permute(2, 0, 1)
+        if isinstance(f0s, torch.Tensor):
+            # audio features
+            f0_dummy = self.get_end_f0(f0s)
+            f0s = torch.cat((f0s, f0_dummy), dim=2)
+            f0s = F.relu(self.prenet_f0(f0s))
+            f0s = f0s.permute(2, 0, 1)
 
         self.initialize_decoder_states(
             memory, mask=~get_mask_from_lengths(memory_lengths))
@@ -447,11 +448,18 @@ class Decoder(nn.Module):
         mel_outputs, gate_outputs, alignments = [], [], []
         while len(mel_outputs) < decoder_inputs.size(0) - 1:
             if len(mel_outputs) == 0 or np.random.uniform(0.0, 1.0) <= self.p_teacher_forcing:
-                decoder_input = torch.cat((decoder_inputs[len(mel_outputs)],
-                                           f0s[len(mel_outputs)]), dim=1)
+                if isinstance(f0s, torch.Tensor):
+                    decoder_input = torch.cat((decoder_inputs[len(mel_outputs)],
+                                               f0s[len(mel_outputs)]), dim=1)
+                else:
+                    decoder_input = decoder_inputs[len(mel_outputs)]
             else:
-                decoder_input = torch.cat((self.prenet(mel_outputs[-1]),
-                                           f0s[len(mel_outputs)]), dim=1)
+                if isinstance(f0s, torch.Tensor):
+                    decoder_input = torch.cat((self.prenet(mel_outputs[-1]),
+                                               f0s[len(mel_outputs)]), dim=1)
+                else:
+                    decoder_input = self.prenet(mel_outputs[-1])
+
             mel_output, gate_output, attention_weights = self.decode(
                 decoder_input)
             mel_outputs += [mel_output.squeeze(1)]
@@ -478,19 +486,23 @@ class Decoder(nn.Module):
         decoder_input = self.get_go_frame(memory)
 
         self.initialize_decoder_states(memory, mask=None)
-        f0_dummy = self.get_end_f0(f0s)
-        f0s = torch.cat((f0s, f0_dummy), dim=2)
-        f0s = F.relu(self.prenet_f0(f0s))
-        f0s = f0s.permute(2, 0, 1)
+        if isinstance(f0s, torch.Tensor):
+            f0_dummy = self.get_end_f0(f0s)
+            f0s = torch.cat((f0s, f0_dummy), dim=2)
+            f0s = F.relu(self.prenet_f0(f0s))
+            f0s = f0s.permute(2, 0, 1)
 
         mel_outputs, gate_outputs, alignments = [], [], []
         while True:
-            if len(mel_outputs) < len(f0s):
-                f0 = f0s[len(mel_outputs)]
-            else:
-                f0 = f0s[-1] * 0
+            if isinstance(f0s, torch.Tensor):
+                if len(mel_outputs) < len(f0s):
+                    f0 = f0s[len(mel_outputs)]
+                else:
+                    f0 = f0s[-1] * 0
 
-            decoder_input = torch.cat((self.prenet(decoder_input), f0), dim=1)
+                decoder_input = torch.cat((self.prenet(decoder_input), f0), dim=1)
+            else:
+                decoder_input = self.prenet(decoder_input)
             mel_output, gate_output, alignment = self.decode(decoder_input)
 
             mel_outputs += [mel_output.squeeze(1)]
@@ -525,16 +537,20 @@ class Decoder(nn.Module):
         decoder_input = self.get_go_frame(memory)
 
         self.initialize_decoder_states(memory, mask=None)
-        f0_dummy = self.get_end_f0(f0s)
-        f0s = torch.cat((f0s, f0_dummy), dim=2)
-        f0s = F.relu(self.prenet_f0(f0s))
-        f0s = f0s.permute(2, 0, 1)
+        if isinstance(f0s, torch.Tensor):
+            f0_dummy = self.get_end_f0(f0s)
+            f0s = torch.cat((f0s, f0_dummy), dim=2)
+            f0s = F.relu(self.prenet_f0(f0s))
+            f0s = f0s.permute(2, 0, 1)
 
         mel_outputs, gate_outputs, alignments = [], [], []
         for i in range(len(attention_map)):
-            f0 = f0s[i]
+            if isinstance(f0s, torch.Tensor):
+                f0 = f0s[i]
+                decoder_input = torch.cat((self.prenet(decoder_input), f0), dim=1)
+            else:
+                decoder_input = self.prenet(decoder_input)
             attention = attention_map[i]
-            decoder_input = torch.cat((self.prenet(decoder_input), f0), dim=1)
             mel_output, gate_output, alignment = self.decode(decoder_input, attention)
 
             mel_outputs += [mel_output.squeeze(1)]
@@ -579,7 +595,8 @@ class Tacotron2(nn.Module):
         gate_padded = to_gpu(gate_padded).float()
         output_lengths = to_gpu(output_lengths).long()
         speaker_ids = to_gpu(speaker_ids.data).long()
-        f0_padded = to_gpu(f0_padded).float()
+        if isinstance(f0_padded, torch.Tensor):
+            f0_padded = to_gpu(f0_padded).float()
         return ((text_padded, input_lengths, mel_padded, max_len,
                  output_lengths, speaker_ids, f0_padded),
                 (mel_padded, gate_padded))

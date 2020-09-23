@@ -20,8 +20,18 @@ from utils import inv_linearspectrogram
 from pathlib import Path
 import matplotlib.pyplot as plt
 import aukit
+import json
 
 _device = 'cpu'
+
+
+def json_dump(obj, path):
+    obj = {k: v for k, v in obj.items()}
+    if os.path.isfile(path):
+        dt = json.load(open(path, encoding="utf8"))
+        if obj != dt:
+            path = "{}_{}.json".format(os.path.splitext(path)[0], time.strftime("%Y%m%d-%H%M%S"))
+    json.dump(obj, open(path, "wt", encoding="utf8"), indent=4, ensure_ascii=False)
 
 
 def reduce_tensor(tensor, n_gpus):
@@ -48,9 +58,9 @@ def init_distributed(hparams, n_gpus, rank, group_name):
 
 def prepare_dataloaders(hparams):
     # Get data, data loaders and collate function ready
-    trainset = TextMelLoader(hparams.training_files, hparams)
+    trainset = TextMelLoader(hparams.training_files, hparams, mode=hparams.train_mode)
     valset = TextMelLoader(hparams.validation_files, hparams,
-                           speaker_ids=trainset.speaker_ids)
+                           speaker_ids=trainset.speaker_ids, mode=hparams.train_mode)
     collate_fn = TextMelCollate(hparams.n_frames_per_step)
 
     if hparams.distributed_run:
@@ -143,11 +153,11 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
             mel_outputs, mel_outputs_2, gate_outputs, alignments = y_pred
             loss = criterion(y_pred, y)
             if outdir and save_flag:
-                curdir = outdir.joinpath('validation', f'{iteration:06d}-{loss.data.cpu().numpy():.6f}')
+                curdir = outdir.joinpath('validation', f'{iteration:06d}-{loss.data.cpu().numpy():.4f}')
                 curdir.mkdir(exist_ok=True, parents=True)
                 plt.imsave(curdir.joinpath('spectrogram_pred.png'), mel_outputs[0].cpu().numpy())
                 plt.imsave(curdir.joinpath('spectrogram_true.png'), y[0][0].cpu().numpy())
-                plt.imsave(curdir.joinpath('alignment.png'), alignments[0].cpu().numpy())
+                plt.imsave(curdir.joinpath('alignment_pred.png'), alignments[0].cpu().numpy().T)
                 wav_output = inv_linearspectrogram(mel_outputs[0].cpu().numpy())
                 aukit.save_wav(wav_output, curdir.joinpath('griffinlim_pred.wav'), sr=hparams.sampling_rate)
                 wav_output = inv_linearspectrogram(y[0][0].cpu().numpy())
@@ -205,6 +215,23 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
         output_directory, log_directory, rank)
 
     train_loader, valset, collate_fn, train_sampler = prepare_dataloaders(hparams)
+
+    # 记录训练的元数据。
+    meta_folder = os.path.join(output_directory, 'metadata')
+    os.makedirs(meta_folder, exist_ok=True)
+
+    path = os.path.join(meta_folder, "speakers.json")
+    obj = dict(valset.speaker_ids)
+    json_dump(obj, path)
+
+    path = os.path.join(meta_folder, "hparams.json")
+    obj = {k: v for k, v in hparams.items()}
+    json_dump(obj, path)
+
+    path = os.path.join(meta_folder, "symbols.json")
+    from text.symbols import symbols
+    obj = {w: i for i, w in enumerate(symbols)}
+    json_dump(obj, path)
 
     # Load checkpoint if one exists
     iteration = 0
@@ -298,7 +325,7 @@ if __name__ == '__main__':
                         required=False, help='rank of current gpu')
     parser.add_argument('--group_name', type=str, default='group_name',
                         required=False, help='Distributed group name')
-    parser.add_argument('--hparams', type=str, default='{"batch_size":4}',
+    parser.add_argument('--hparams', type=str, default='{"batch_size":4,"iters_per_checkpoint":2}',
                         required=False, help='comma separated name=value pairs')
 
     args = parser.parse_args()
@@ -312,6 +339,13 @@ if __name__ == '__main__':
     print("Distributed Run:", hparams.distributed_run)
     print("cuDNN Enabled:", hparams.cudnn_enabled)
     print("cuDNN Benchmark:", hparams.cudnn_benchmark)
+
+    meta_folder = os.path.join(args.output_directory, 'metadata')
+    os.makedirs(meta_folder, exist_ok=True)
+
+    path = os.path.join(meta_folder, "args.json")
+    obj = args.__dict__
+    json_dump(obj, path)
 
     train(args.output_directory, args.log_directory, args.checkpoint_path,
           args.warm_start, args.n_gpus, args.rank, args.group_name, hparams)

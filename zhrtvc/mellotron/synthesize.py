@@ -36,7 +36,8 @@ def synthesize_one(text, speaker=0, model_path=''):
     text_encoded = torch.LongTensor(text_to_sequence(text, _hparams.text_cleaners))[None, :].to(_device)
     speaker_id = torch.LongTensor([speaker]).to(_device)
     style_input = 0
-    pitch_contour = torch.zeros(1, 1, text_encoded.shape[1] * 10, dtype=torch.float)
+    pitch_contour = torch.zeros(1, 1, text_encoded.shape[1] * 5, dtype=torch.float)
+    pitch_contour = None
 
     with torch.no_grad():
         mel_outputs, mel_outputs_postnet, gate_outputs, alignments = _mellotron.inference(
@@ -53,10 +54,10 @@ def griffinlim_vocoder(spec):
 
 if __name__ == "__main__":
     print(__file__)
-    model_path = r'F:\github\zhrtvc\models\mellotron\linear\checkpoint_0'
+    model_path = r'F:\github\zhrtvc\models\mellotron\linear\checkpoint-000000.pt'
     load_model_mellotron(model_path)
 
-    spec = synthesize_one('你好和埃尔多哥哥我去额为前往人情味儿。', 0)
+    spec = synthesize_one('你好。', 0)
     print(spec.shape)
     wav = griffinlim_vocoder(spec)
     print(wav.shape)

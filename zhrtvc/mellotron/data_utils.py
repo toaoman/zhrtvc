@@ -23,9 +23,13 @@ class TextMelLoader(torch.utils.data.Dataset):
     """
 
     def __init__(self, audiopaths_and_text, hparams, speaker_ids=None, mode='train'):
-        if mode == 'train':
+        tmp = mode.split('-')
+        if tmp[0] == 'train':
             self.audiopaths_and_text = load_filepaths_and_text_train(audiopaths_and_text, split='\t')
-            self.mode = True
+            if len(tmp) == 2:
+                self.mode = tmp[1]
+            else:
+                self.mode = True
         else:
             self.audiopaths_and_text = load_filepaths_and_text(audiopaths_and_text, split='\t')
             self.mode = False
@@ -62,10 +66,29 @@ class TextMelLoader(torch.utils.data.Dataset):
         mpath = onedir.joinpath("mel.npy")
         spath = onedir.joinpath("speaker.npy")
         fpath = onedir.joinpath("f0.npy")
-        text = torch.from_numpy(np.load(tpath))
-        mel = torch.from_numpy(np.load(mpath))
-        speaker_id = torch.from_numpy(np.load(spath))
-        f0 = torch.from_numpy(np.load(fpath))
+        text = torch.from_numpy(np.load(tpath))  # (86,)
+        mel = torch.from_numpy(np.load(mpath))  # (80, 397)
+        speaker_id = torch.from_numpy(np.load(spath))  # (1,)
+        f0 = np.load(fpath)  # (1, 395)
+        if self.mode == 'f01':
+            # 用f0数据。
+            f0 = f0[:, :mel.shape[1]]
+        elif self.mode == 'f02':
+            # 用f0的均值代替f0，简化f0。
+            f0 = f0.flatten()
+            f0_value = np.mean(f0[f0>10])
+            f0 = np.ones((1, mel.shape[1])) * f0_value
+        elif self.mode == 'f03':
+            # 用零向量填充f0。
+            f0 = np.zeros((1, mel.shape[1]))
+        elif self.mode == 'f04':
+            # 不用f0。
+            f0 = None
+        else:
+            # 默认：不用f0。
+            f0 = None
+        if isinstance(f0, np.ndarray):
+            f0 = torch.from_numpy(f0)
         return (text, mel, speaker_id, f0)
 
     def create_speaker_lookup_table(self, audiopaths_and_text):
@@ -106,14 +129,14 @@ class TextMelLoader(torch.utils.data.Dataset):
 
         melspec = linearspectrogram_torch(audio_norm)  # 用aukit的频谱生成方案
 
-        # f0 = self.get_f0(audio.cpu().numpy(), sampling_rate,
-        #                  self.filter_length, self.hop_length, self.f0_min,
-        #                  self.f0_max, self.harm_thresh)
-        # f0 = torch.from_numpy(f0)[None]
+        f0 = self.get_f0(audio.cpu().numpy(), sampling_rate,
+                         self.filter_length, self.hop_length, self.f0_min,
+                         self.f0_max, self.harm_thresh)
+        f0 = torch.from_numpy(f0)[None]
         # f0 = f0[:, :melspec.size(1)]
 
         # 用零向量替换F0
-        f0 = torch.zeros(1, melspec.shape[1], dtype=torch.float)
+        # f0 = torch.zeros(1, melspec.shape[1], dtype=torch.float)
         return melspec, f0
 
     def get_text(self, text):
@@ -181,7 +204,10 @@ class TextMelCollate():
             output_lengths[i] = mel.size(1)
             speaker_ids[i] = batch[ids_sorted_decreasing[i]][2]
             f0 = batch[ids_sorted_decreasing[i]][3]
-            f0_padded[i, :, :f0.size(1)] = f0
+            if isinstance(f0, torch.Tensor):
+                f0_padded[i, :, :f0.size(1)] = f0
+            else:
+                f0_padded = f0
 
         model_inputs = (text_padded, input_lengths, mel_padded, gate_padded,
                         output_lengths, speaker_ids, f0_padded)
