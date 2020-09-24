@@ -139,6 +139,13 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
         val_loss = 0.0
         for i, batch in enumerate(val_loader):
             x, y = model.parse_batch(batch)  # y: 2部分
+            # x: (text_padded, input_lengths, mel_padded, max_len, output_lengths, speaker_ids, f0_padded),
+            # y: (mel_padded, gate_padded)
+            # x:
+            # torch.Size([4, 64])
+            # torch.Size([4])
+            # torch.Size([4, 401, 347])
+
             # y:
             # torch.Size([4, 401, 439])
             # torch.Size([4, 439])
@@ -174,7 +181,7 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
     model.train()
     if rank == 0:
         print("Validation loss {}: {:9f}  ".format(iteration, reduced_val_loss))
-        logger.log_validation(val_loss, model, y, y_pred, iteration)
+        logger.log_validation(val_loss, model, y, y_pred, iteration, x)
 
 
 def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
