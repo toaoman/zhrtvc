@@ -64,7 +64,24 @@ def load_flac():
     print(max(abs(wav2)))
 
 
+def run_aliaudio():
+    indir = Path(r'F:\data\alijuzi_tar')
+    txtpath = indir.joinpath('biaobei_juzi_ssml.txt')
+    # spk_lst = [w.stem for w in sorted(indir.glob('*.tar'))]
+    spk_lst = 'Aibao Aicheng Aida Aijia Aijing Aimei Aina Aiqi Aitong Aiwei Aixia Aiya Aiyu Aiyue Sijia Siqi Siyue Xiaobei Xiaomei Sicheng'.split()
+
+    text_lst = open(txtpath, encoding='utf8').readlines()
+    outpath = indir.joinpath('metadata.csv')
+    with open(outpath, 'wt', encoding='utf8') as fout:
+        for spk in tqdm(spk_lst):
+            for line in text_lst:
+                idx, text = line.strip().split('\t')
+                audio_path = f'{spk}/{idx}.wav'
+                out = f'{audio_path}\t{text}\t{spk}\n'
+                fout.write(out)
+
 if __name__ == "__main__":
     print(__file__)
     # gen_filelists()
-    load_flac()
+    # load_flac()
+    run_aliaudio()

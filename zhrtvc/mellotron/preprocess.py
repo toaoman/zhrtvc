@@ -42,7 +42,7 @@ def process_one(index):
 
     text, mel, speaker_id, f0 = text_mel_loader[index]
     onedir = output_dir.joinpath('npy', format_index(index))
-    onedir.mkdir(exist_ok=True)
+    onedir.mkdir(exist_ok=True, parents=True)
     tpath = onedir.joinpath("text.npy")
     mpath = onedir.joinpath("mel.npy")
     spath = onedir.joinpath("speaker.npy")
@@ -63,7 +63,8 @@ def process_many(n_processes):
             fout.write('{}\t{}\n'.format(format_index(idx), '\t'.join(tmp).strip()))
 
     with open(output_dir.joinpath('validation.txt'), 'wt', encoding='utf8') as fout:
-        for idx in tqdm(np.random.choice(ids, hp.batch_size * 2, replace=False)):
+        val_ids = np.random.choice(ids, min(len(ids), hp.batch_size * 2), replace=False)
+        for idx in tqdm(val_ids):
             tmp = text_mel_loader.audiopaths_and_text[idx]
             fout.write('{}\t{}\n'.format(format_index(idx), '\t'.join(tmp).strip()))
 
@@ -84,12 +85,12 @@ if __name__ == "__main__":
         description="预处理训练数据，保存为numpy的npy格式，训练的时候直接从本地load数据。",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument("-i", "--metadata_path", type=str, default=r'F:\github\zhrtvc\data\samples\metadata.csv',
+    parser.add_argument("-i", "--metadata_path", type=str, default=r'F:\github\zhrtvc\data\samples_ssml\metadata.csv',
                         help="metadata file path")
     # 每行数据格式：语音文件路径\t文本\t说话人名称\n，样例：aliaudio/Aibao/005397.mp3	他走近钢琴并开始演奏“祖国从哪里开始”。	aibao
 
     parser.add_argument("-o", "--output_dir", type=Path,
-                        default=Path(r'F:\github\zhrtvc\data\SV2TTS\mellotron\linear'),
+                        default=Path(r'F:\github\zhrtvc\data\SV2TTS\mellotron\samples_ssml'),
                         help="Path to the output directory")
     parser.add_argument("-n", "--n_processes", type=int, default=0,
                         help="Number of processes in parallel.")

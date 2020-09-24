@@ -35,7 +35,7 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         # 000000	Aibao/005397.mp3	他走近钢琴并开始演奏“祖国从哪里开始”。	0
         validation_files=r"F:\github\zhrtvc\data\SV2TTS\mellotron\linear\validation.txt",
         # 'filelists/ljs_audiopaths_text_sid_val_filelist.txt',
-        text_cleaners=['chinese_cleaners'],
+        text_cleaners='ssml',  # ['chinese_cleaners'],
         p_arpabet=1.0,
         cmudict_path=None,  # "data/cmu_dictionary",
 

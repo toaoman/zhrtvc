@@ -311,7 +311,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', '--output_directory', type=str, default=r'F:\github\zhrtvc\models\mellotron\linear',
+    parser.add_argument('-o', '--output_directory', type=str, default=r'F:\github\zhrtvc\models\mellotron\samples_ssml',
                         help='directory to save checkpoints')
     parser.add_argument('-l', '--log_directory', type=str, default='tensorboard',
                         help='directory to save tensorboard logs')
