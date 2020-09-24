@@ -10,7 +10,8 @@ from utils import to_gpu, get_mask_from_lengths
 from modules import GST
 
 drop_rate = 0.5
-_device = 'cpu'
+
+_device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 def load_model(hparams):

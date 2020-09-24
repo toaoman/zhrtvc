@@ -30,10 +30,10 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         # f01:用基频；f02:用基频均值填充；f03:用零向量代替基频；f04:不用基频。
         # f01,f02,f03的模式都把prenet_f0_dim设为1，f04把prenet_f0_dim设为0。
 
-        training_files=r"F:\github\zhrtvc\data\SV2TTS\mellotron\linear\train.txt",
+        training_files=r"F:\github\zhrtvc\data\SV2TTS\mellotron\samples_ssml\train.txt",
         # 文件一行记录一个语音信息，每行的数据结构：数据文件夹名\t语音源文件\t文本\t说话人名称\n，样例如下：
         # 000000	Aibao/005397.mp3	他走近钢琴并开始演奏“祖国从哪里开始”。	0
-        validation_files=r"F:\github\zhrtvc\data\SV2TTS\mellotron\linear\validation.txt",
+        validation_files=r"F:\github\zhrtvc\data\SV2TTS\mellotron\samples_ssml\validation.txt",
         # 'filelists/ljs_audiopaths_text_sid_val_filelist.txt',
         text_cleaners='ssml',  # ['chinese_cleaners'],
         p_arpabet=1.0,
