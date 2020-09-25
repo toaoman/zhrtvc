@@ -5,6 +5,12 @@
 """
 """
 from pathlib import Path
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(Path(__name__).stem)
+
+from pathlib import Path
 from functools import partial
 from multiprocessing.pool import Pool
 from matplotlib import pyplot as plt
@@ -39,7 +45,6 @@ def process_one(index):
         fpath = output_dir.joinpath('speaker_ids.json')
         speaker_ids = text_mel_loader.speaker_ids
         json.dump(speaker_ids, open(fpath, 'wt', encoding='utf8'), indent=4, ensure_ascii=False)
-
     text, mel, speaker_id, f0 = text_mel_loader[index]
     onedir = output_dir.joinpath('npy', format_index(index))
     onedir.mkdir(exist_ok=True, parents=True)
@@ -69,8 +74,14 @@ def process_many(n_processes):
             fout.write('{}\t{}\n'.format(format_index(idx), '\t'.join(tmp).strip()))
 
     if n_processes == 0:
-        for num in tqdm(ids):
-            process_one(num)
+        for index in tqdm(ids):
+            try:  # 防止少数错误语音导致生成数据失败。
+                process_one(index)
+            except Exception as e:
+                logger.info('Error! The <{}> audio load failed! {}'.format(index, e))
+                tmp = text_mel_loader.audiopaths_and_text[index]
+                logger.info('{}\t{}\n'.format(format_index(index), '\t'.join(tmp).strip()))
+                logger.info('=' * 50)
     else:
         func = partial(process_one)
         job = Pool(n_processes).imap(func, ids)

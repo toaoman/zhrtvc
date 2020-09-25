@@ -1,3 +1,9 @@
+from pathlib import Path
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(Path(__name__).stem)
+
 import random
 import os
 import re
@@ -76,7 +82,7 @@ class TextMelLoader(torch.utils.data.Dataset):
         elif self.mode == 'f02':
             # 用f0的均值代替f0，简化f0。
             f0 = f0.flatten()
-            f0_value = np.mean(f0[f0>10])
+            f0_value = np.mean(f0[f0 > 10])
             f0 = np.ones((1, mel.shape[1])) * f0_value
         elif self.mode == 'f03':
             # 用零向量填充f0。
@@ -147,9 +153,25 @@ class TextMelLoader(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         if self.mode:
-            return self.get_data_train(self.audiopaths_and_text[index][0])
+            tmp = index
+            while True:
+                try:  # 模型训练模式容错。
+                    out = self.get_data_train(self.audiopaths_and_text[tmp][0])
+                    if tmp != index:
+                        logger.info(
+                            'The index <{}> loaded success!\n{}\n'.format(tmp, '-' * 50))
+                    return out
+                except:
+                    logger.info(
+                        'The index <{}> loaded failed!'.format(index, tmp))
+                    tmp = np.random.randint(0, len(self.audiopaths_and_text) - 1)
         else:
-            return self.get_data(self.audiopaths_and_text[index])
+            try:  # 数据预处理模式容错。
+                out = self.get_data(self.audiopaths_and_text[index])
+                return out
+            except Exception as e:
+                logger.info('The index <{}> loaded failed!'.format(index))
+                return
 
     def __len__(self):
         return len(self.audiopaths_and_text)
