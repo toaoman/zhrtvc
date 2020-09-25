@@ -41,6 +41,8 @@ def inv_linearspectrogram(spec):
 
 ########################### 用aukit的默认参数 #############################
 
+_device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 
 def read(fpath):
     wav, sr = librosa.load(fpath, sr=None)
@@ -50,7 +52,7 @@ def read(fpath):
 
 def get_mask_from_lengths(lengths):
     max_len = torch.max(lengths).item()
-    ids = torch.arange(0, max_len, out=torch.LongTensor(max_len))  # out=torch.cuda.LongTensor(max_len)
+    ids = torch.arange(0, max_len, out=torch.LongTensor(max_len).to(_device))  # out=torch.cuda.LongTensor(max_len)
     mask = (ids < lengths.unsqueeze(1))  # .bool()
     return mask
 

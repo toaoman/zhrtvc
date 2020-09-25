@@ -80,6 +80,7 @@ class Tacotron2Logger(SummaryWriter):
                         spectrogram_target_shape=str(spect_shape), spectrogram_predicted_shape=str(specp_shape),
                         alignment_shape=str(align_shape))
         out_text = json.dumps(out_text, indent=4, ensure_ascii=False)
+        out_text = f'<pre>{out_text}</pre>'  # 支持html标签
         self.add_text(
             'text',
             out_text,
