@@ -31,6 +31,7 @@ reference_paths = [w for w in sorted(sample_dir.glob('*.wav'))]
 if __name__ == '__main__':
     ## Info & args
     parser = argparse.ArgumentParser(
+        description="命令行执行的Demo。",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument("-e", "--enc_model_fpath", type=Path,

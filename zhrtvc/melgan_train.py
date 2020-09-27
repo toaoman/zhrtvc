@@ -11,8 +11,7 @@ from melgan.train import train_melgan
 if __name__ == "__main__":
     print(__file__)
     parser = argparse.ArgumentParser(
-        description="Trains the vocoder from the synthesizer audios and the GTA synthesized mels, "
-                    "or ground truth mels.",
+        description="训练MelGAN声码器模型。",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 

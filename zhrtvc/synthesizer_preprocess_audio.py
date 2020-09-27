@@ -6,15 +6,13 @@ import argparse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Preprocesses audio files from datasets, encodes them as mel spectrograms "
-                    "and writes them to  the disk. Audio files are also saved, to be used by the "
-                    "vocoder for training.",
+        description="把语音信号转为频谱等模型训练需要的数据。",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument("--datasets_root", type=Path, default=Path(r'../data'), help= \
-        "Path to the directory containing your LibriSpeech/TTS datasets.")
+        "Path to the directory containing your datasets.")
     parser.add_argument("--datasets", type=str, default="samples", help= \
-        "Path to the directory containing your LibriSpeech/TTS datasets.")
+        "Path to the directory containing your datasets.")
     parser.add_argument("-o", "--out_dir", type=Path, default=argparse.SUPPRESS, help= \
         "Path to the output directory that will contain the mel spectrograms, the audios and the "
         "embeds. Defaults to <datasets_root>/SV2TTS/synthesizer/")
