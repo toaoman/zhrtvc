@@ -95,8 +95,13 @@ def process_many(n_processes, skip_existing=False):
 
 
 if __name__ == "__main__":
-    print(__file__)
     import argparse
+    try:
+        from setproctitle import setproctitle
+        setproctitle('zhrtvc-mellotron-preprocess')
+    except ImportError:
+        pass
+
 
     parser = argparse.ArgumentParser(
         description="预处理训练数据，保存为numpy的npy格式，训练的时候直接从本地load数据。",
