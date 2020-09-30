@@ -318,7 +318,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', '--output_directory', type=str, default=r'F:\github\zhrtvc\models\mellotron\samples_ssml',
+    parser.add_argument('-o', '--output_directory', type=str, default=r"../../models/mellotron/samples_ssml",
                         help='directory to save checkpoints')
     parser.add_argument('-l', '--log_directory', type=str, default='tensorboard',
                         help='directory to save tensorboard logs')
@@ -332,7 +332,7 @@ if __name__ == '__main__':
                         required=False, help='rank of current gpu')
     parser.add_argument('--group_name', type=str, default='group_name',
                         required=False, help='Distributed group name')
-    parser.add_argument('--hparams', type=str, default='{"batch_size":4,"iters_per_checkpoint":2}',
+    parser.add_argument('--hparams', type=str, default='{"batch_size":64,"iters_per_checkpoint":5000}',
                         required=False, help='comma separated name=value pairs')
 
     args = parser.parse_args()
