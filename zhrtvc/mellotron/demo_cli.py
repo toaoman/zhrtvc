@@ -29,11 +29,11 @@ def load_model_mellotron(model_path):
     _mellotron.load_state_dict(torch.load(model_path, map_location=_device)['state_dict'])
 
 
-def synthesize_one(text, speaker=0, model_path=''):
+def synthesize_one(text, speaker=0, model_path='', with_alignment=False):
     if _mellotron is None:
         load_model_mellotron(model_path)
 
-    text_encoded = torch.LongTensor(text_to_sequence(text, _hparams.text_cleaners))[None, :].to(_device)
+    text_encoded = torch.LongTensor(text_to_sequence(text, cleaner_names='hanzi'))[None, :].to(_device)
     speaker_id = torch.LongTensor([speaker]).to(_device)
     style_input = 0
     pitch_contour = torch.zeros(1, 1, text_encoded.shape[1] * 5, dtype=torch.float)
@@ -44,7 +44,10 @@ def synthesize_one(text, speaker=0, model_path=''):
             (text_encoded, style_input, speaker_id, pitch_contour))
 
     out_mel = mel_outputs_postnet.data.cpu().numpy()[0]
-    return out_mel
+    if with_alignment:
+        return out_mel, alignments[0]
+    else:
+        return out_mel
 
 
 def griffinlim_vocoder(spec):
@@ -185,9 +188,9 @@ if __name__ == "__main__":
                gpu_properties.total_memory / 1e9))
 
     ## Run a test
-    spec = synthesize_one('你好。', 0)
+    spec, align = synthesize_one('你好，欢迎使用语言合成服务。', 0, with_alignment=True)
     print("Spectrogram shape: {}".format(spec.shape))
-
+    print("Alignment shape: {}".format(align.shape))
     wav = griffinlim_vocoder(spec)
     print("Waveform shape: {}".format(wav.shape))
 
@@ -202,25 +205,22 @@ if __name__ == "__main__":
     while True:
         try:
             # Get the reference audio filepath
-            message = "Speaker:\n"
-            ref = input(message)
-            if not ref.strip():
-                ref = np.random.choice(speaker_names)
-            print('Speaker: {}'.format(ref))
+            speaker = input("Speaker:\n")
+            if not speaker.strip():
+                speaker = np.random.choice(speaker_names)
+            print('Speaker: {}'.format(speaker))
 
             ## Generating the spectrogram
             text = input("Text:\n")
-
             if not text.strip():
                 text = np.random.choice(example_texts)
-
             print('Text: {}'.format(text))
             # The synthesizer works in batch, so you need to put your data in a list or numpy array
 
             print("Creating the spectrogram ...")
-            spec = synthesize_one(text, speaker_index_dict[ref])
+            spec, align = synthesize_one(text, speaker_index_dict[speaker], with_alignment=True)
             print("Spectrogram shape: {}".format(spec.shape))
-
+            print("Alignment shape: {}".format(align.shape))
             ## Generating the waveform
             print("Synthesizing the waveform ...")
             wav = griffinlim_vocoder(spec)
@@ -234,7 +234,7 @@ if __name__ == "__main__":
 
             txt_path = args.out_dir.joinpath("info_dict.txt".format(cur_time))
             with open(txt_path, 'at', encoding='utf8') as fout:
-                dt = dict(text=text, audio_path=str(fpath), speaker=ref, time=cur_time)
+                dt = dict(text=text, audio_path=str(fpath), speaker=speaker, time=cur_time)
                 out = json.dumps(dt, ensure_ascii=False)
                 fout.write('{}\n'.format(out))
 

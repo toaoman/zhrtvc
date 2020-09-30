@@ -36,7 +36,7 @@ def format_index(index):
     return '{:06d}'.format(index)
 
 
-def process_one(index):
+def process_one(index, skip_existing=False):
     global text_mel_loader
     global metadata_path
     global output_dir
@@ -45,13 +45,19 @@ def process_one(index):
         fpath = output_dir.joinpath('speaker_ids.json')
         speaker_ids = text_mel_loader.speaker_ids
         json.dump(speaker_ids, open(fpath, 'wt', encoding='utf8'), indent=4, ensure_ascii=False)
-    text, mel, speaker_id, f0 = text_mel_loader[index]
+
     onedir = output_dir.joinpath('npy', format_index(index))
     onedir.mkdir(exist_ok=True, parents=True)
     tpath = onedir.joinpath("text.npy")
     mpath = onedir.joinpath("mel.npy")
     spath = onedir.joinpath("speaker.npy")
     fpath = onedir.joinpath("f0.npy")
+
+    if skip_existing and all([f.is_file() for f in [tpath, mpath, spath, fpath]]):
+        return
+
+    text, mel, speaker_id, f0 = text_mel_loader[index]
+
     np.save(tpath, text.numpy(), allow_pickle=False)
     np.save(mpath, mel.numpy(), allow_pickle=False)
     np.save(spath, speaker_id.numpy(), allow_pickle=False)
@@ -59,7 +65,7 @@ def process_one(index):
     return index
 
 
-def process_many(n_processes):
+def process_many(n_processes, skip_existing=False):
     # Embed the utterances in separate threads
     ids = list(range(len(text_mel_loader)))
     with open(output_dir.joinpath('train.txt'), 'wt', encoding='utf8') as fout:
@@ -76,14 +82,14 @@ def process_many(n_processes):
     if n_processes == 0:
         for index in tqdm(ids):
             try:  # 防止少数错误语音导致生成数据失败。
-                process_one(index)
+                process_one(index, skip_existing=skip_existing)
             except Exception as e:
                 logger.info('Error! The <{}> audio load failed! {}'.format(index, e))
                 tmp = text_mel_loader.audiopaths_and_text[index]
                 logger.info('{}\t{}\n'.format(format_index(index), '\t'.join(tmp).strip()))
                 logger.info('=' * 50)
     else:
-        func = partial(process_one)
+        func = partial(process_one, skip_existing=skip_existing)
         job = Pool(n_processes).imap(func, ids)
         list(tqdm(job, "Embedding", len(ids), unit="utterances"))
 
@@ -105,7 +111,7 @@ if __name__ == "__main__":
                         help="Path to the output directory")
     parser.add_argument("-n", "--n_processes", type=int, default=0,
                         help="Number of processes in parallel.")
-    parser.add_argument("-s", "--skip_existing", type=bool, default=False,
+    parser.add_argument("-s", "--skip_existing", type=bool, default=True,
                         help="Whether to overwrite existing files with the same name. ")
     parser.add_argument("--hparams", type=str, default="",
                         help="Hyperparameter overrides as a comma-separated list of name-value pairs")
@@ -122,4 +128,4 @@ if __name__ == "__main__":
     json.dump(speaker_ids, open(fpath, 'wt', encoding='utf8'), indent=4, ensure_ascii=False)
 
     # Preprocess the dataset
-    process_many(args.n_processes)
+    process_many(args.n_processes, skip_existing=args.skip_existing)
