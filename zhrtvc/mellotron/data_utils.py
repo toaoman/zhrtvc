@@ -90,6 +90,11 @@ class TextMelLoader(torch.utils.data.Dataset):
         elif self.mode == 'f04':
             # 不用f0。
             f0 = None
+        elif self.mode == 'f05s02':
+            # 音色控制，用发音人id，等距分配，speaker_id设置为0。
+            f0_value = speaker_id[0] / len(self.speaker_ids)
+            f0 = np.ones((1, mel.shape[1])) * f0_value
+            speaker_id = speaker_id * 0
         else:
             # 默认：不用f0。
             f0 = None

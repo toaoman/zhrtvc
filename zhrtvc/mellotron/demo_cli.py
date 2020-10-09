@@ -156,13 +156,15 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--checkpoint_path', type=str,
-                        default=r"../../models/mellotron/aliai_ssml/checkpoint-005426.pt",
+                        default=r"../../models/mellotron/aliaudio-v1/checkpoint-050000.pt",
                         help='模型路径。')
     parser.add_argument('-s', '--speakers_path', type=str,
-                        default=r"../../models/mellotron/aliai_ssml/metadata/speakers.json",
+                        default=r"../../models/mellotron/aliaudio-v1/metadata/speakers.json",
                         help='发音人映射表路径。')
-    parser.add_argument("-o", "--out_dir", type=Path, default="../../data/outs",
+    parser.add_argument("-o", "--out_dir", type=Path, default="../../aliaudio-v1/test",
                         help='保存合成的数据路径。')
+    parser.add_argument("-p", "--play", type=int, default=1,
+                        help='是否合成语音后自动播放语音。')
     parser.add_argument('--n_gpus', type=int, default=1,
                         required=False, help='number of gpus')
     parser.add_argument('--hparams', type=str, default='{"batch_size":64,"iters_per_checkpoint":5000}',
@@ -240,6 +242,8 @@ if __name__ == "__main__":
 
             num_generated += 1
             print("\nSaved output as %s\n\n" % fpath)
+            if args.play:
+                aukit.play_audio(fpath, sr=_hparams.sampling_rate)
         except Exception as e:
             print("Caught exception: %s" % repr(e))
             print("Restarting\n")
