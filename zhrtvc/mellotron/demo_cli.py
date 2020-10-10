@@ -17,8 +17,10 @@ from text import cmudict, text_to_sequence
 from utils import inv_linear_spectrogram
 
 from hparams import create_hparams
+from data_utils import transform_data_train
 
-_hparams = create_hparams()
+from data_utils import transform_mel, transform_text, transform_f0, transform_embed, transform_speaker
+
 _mellotron = None
 _device = 'cpu'
 
@@ -29,15 +31,16 @@ def load_model_mellotron(model_path):
     _mellotron.load_state_dict(torch.load(model_path, map_location=_device)['state_dict'])
 
 
-def synthesize_one(text, speaker=0, model_path='', with_alignment=False):
+def synthesize_one(text, speaker='Aiyue', f0=None, model_path='', with_alignment=False):
     if _mellotron is None:
         load_model_mellotron(model_path)
 
-    text_encoded = torch.LongTensor(text_to_sequence(text, cleaner_names='hanzi'))[None, :].to(_device)
-    speaker_id = torch.LongTensor([speaker]).to(_device)
+    text_encoded = torch.LongTensor(transform_text(text, text_cleaners='hanzi'))[None, :].to(_device)
+
+    speaker_id = torch.LongTensor(transform_speaker(speaker, speaker_ids={})).to(_device)
     style_input = 0
-    pitch_contour = torch.zeros(1, 1, text_encoded.shape[1] * 5, dtype=torch.float)
-    pitch_contour = None
+    pitch_contour = torch.zeros(1, _hparams.prenet_f0_dim, text_encoded.shape[1] * 5, dtype=torch.float)
+    # pitch_contour = None
 
     with torch.no_grad():
         mel_outputs, mel_outputs_postnet, gate_outputs, alignments = _mellotron.inference(
@@ -156,21 +159,23 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--checkpoint_path', type=str,
-                        default=r"../../models/mellotron/aliaudio-v1/checkpoint-050000.pt",
+                        default=r"../../models/mellotron/samples_ssml/checkpoint-000000.pt",
                         help='模型路径。')
     parser.add_argument('-s', '--speakers_path', type=str,
-                        default=r"../../models/mellotron/aliaudio-v1/metadata/speakers.json",
+                        default=r"../../models/mellotron/samples_ssml/metadata/speakers.json",
                         help='发音人映射表路径。')
-    parser.add_argument("-o", "--out_dir", type=Path, default="../../aliaudio-v1/test",
+    parser.add_argument("-o", "--out_dir", type=Path, default="../../models/mellotron/aliaudio-v1/test",
                         help='保存合成的数据路径。')
     parser.add_argument("-p", "--play", type=int, default=1,
                         help='是否合成语音后自动播放语音。')
     parser.add_argument('--n_gpus', type=int, default=1,
                         required=False, help='number of gpus')
-    parser.add_argument('--hparams', type=str, default='{"batch_size":64,"iters_per_checkpoint":5000}',
+    parser.add_argument('--hparams', type=str, default='{"train_mode":"train-f06s02","prenet_f0_dim":8}',
                         required=False, help='comma separated name=value pairs')
 
     args = parser.parse_args()
+
+    _hparams = create_hparams(args.hparams)
 
     model_path = args.checkpoint_path
     load_model_mellotron(model_path)

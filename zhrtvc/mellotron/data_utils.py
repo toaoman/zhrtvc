@@ -4,6 +4,10 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(Path(__name__).stem)
 
+import sys
+
+sys.path.append(str(Path(__file__).absolute().parent.parent))
+
 import random
 import os
 import re
@@ -19,6 +23,101 @@ from text import text_to_sequence, cmudict
 from yin import compute_yin
 
 from utils import melspectrogram_torch, linearspectrogram_torch
+from utils import linearspectrogram
+
+
+def transform_embed(wav, encoder_model_fpath=Path()):
+    from encoder import inference as encoder
+    if not encoder.is_loaded():
+        encoder.load_model(encoder_model_fpath)
+
+    wav = encoder.preprocess_wav(wav)
+    embed = encoder.embed_utterance(wav)
+    return embed
+
+
+def transform_text(text, text_cleaners):
+    return text_to_sequence(text, text_cleaners)
+
+
+def transform_mel(wav, hparams):
+    return linearspectrogram(wav, hparams)
+
+
+def transform_speaker(speaker, speaker_ids=None):
+    speaker_ids = speaker_ids or {}
+    return np.array([speaker_ids.get(speaker, 0)])
+
+
+def transform_f0(wav, hparams):
+    sampling_rate = hparams.sampling_rate
+    frame_length = hparams.filter_length
+    hop_length = hparams.hop_length
+    f0_min = hparams.f0_min
+    f0_max = hparams.f0_max
+    harm_thresh = hparams.harm_thresh
+
+    f0, harmonic_rates, argmins, times = compute_yin(
+        wav, sampling_rate, frame_length, hop_length, f0_min, f0_max,
+        harm_thresh)
+    pad = int((frame_length / hop_length) / 2)
+    f0 = [0.0] * pad + f0 + [0.0] * pad
+
+    f0 = np.array(f0, dtype=np.float32)
+    return f0
+
+
+def transform_data_train(hparams, text_data, mel_data, speaker_data, f0_data, embed_data=None):
+    """
+    把数据转为训练需要的形式，模式控制。
+    """
+    tmp = hparams.train_mode.split('-')
+    if tmp[0] == 'train':
+        if len(tmp) == 2:
+            mode = tmp[1]
+        else:
+            mode = True
+    else:
+        mode = False
+
+    text = torch.from_numpy(text_data)  # (86,)
+    mel = torch.from_numpy(mel_data)  # (80, 397)
+
+    speaker = speaker_data  # (1,)
+    f0 = f0_data  # (1, 395)
+    if mode == 'f01':
+        # 用f0数据。
+        f0 = f0[:, :mel.shape[1]]
+    elif mode == 'f02':
+        # 用f0的均值代替f0，简化f0。
+        f0 = f0.flatten()
+        f0_value = np.mean(f0[f0 > 10])
+        f0 = np.ones((1, mel.shape[1])) * f0_value
+    elif mode == 'f03':
+        # 用零向量填充f0。
+        f0 = np.zeros((1, mel.shape[1]))
+    elif mode == 'f04':
+        # 不用f0。
+        f0 = None
+    elif mode == 'f05s02':
+        # 音色控制，用发音人id，等距分配，speaker_id设置为0。
+        f0_value = speaker[0] / hparams.n_speakers
+        f0 = np.ones((1, mel.shape[1])) * f0_value
+        speaker = speaker * 0
+    elif mode == 'f06s02':
+        # 音色控制，用降维的音频表示向量控制音色，speaker_id设置为0。
+        embed = embed_data  # (256,)
+        embed = embed[::embed.shape[0] // hparams.prenet_f0_dim]
+        embed = embed if embed.shape[0] == hparams.prenet_f0_dim else embed[:hparams.prenet_f0_dim]
+        f0 = np.tile(embed, (mel.shape[1], 1)).T
+        speaker = speaker * 0
+    else:
+        # 默认：不用f0。
+        f0 = None
+    if isinstance(f0, np.ndarray):
+        f0 = torch.from_numpy(f0)
+    speaker = torch.from_numpy(speaker)
+    return (text, mel, speaker, f0)
 
 
 class TextMelLoader(torch.utils.data.Dataset):
@@ -29,6 +128,7 @@ class TextMelLoader(torch.utils.data.Dataset):
     """
 
     def __init__(self, audiopaths_and_text, hparams, speaker_ids=None, mode='train'):
+        self.hparams = hparams
         tmp = mode.split('-')
         if tmp[0] == 'train':
             self.audiopaths_and_text = load_filepaths_and_text_train(audiopaths_and_text, split='\t')
@@ -54,6 +154,8 @@ class TextMelLoader(torch.utils.data.Dataset):
         self.harm_thresh = hparams.harm_thresh
         self.p_arpabet = hparams.p_arpabet
 
+        self.f0_dim = hparams.prenet_f0_dim  # f0的维度设置
+
         self.cmudict = None
         if hparams.cmudict_path is not None:
             self.cmudict = cmudict.CMUDict(hparams.cmudict_path)
@@ -69,38 +171,27 @@ class TextMelLoader(torch.utils.data.Dataset):
     def get_data_train(self, data_dir):
         onedir = Path(data_dir)
         tpath = onedir.joinpath("text.npy")
+        text_data = np.load(tpath)
         mpath = onedir.joinpath("mel.npy")
+        mel_data = np.load(mpath)
         spath = onedir.joinpath("speaker.npy")
+        speaker_data = np.load(spath)
         fpath = onedir.joinpath("f0.npy")
-        text = torch.from_numpy(np.load(tpath))  # (86,)
-        mel = torch.from_numpy(np.load(mpath))  # (80, 397)
-        speaker_id = torch.from_numpy(np.load(spath))  # (1,)
-        f0 = np.load(fpath)  # (1, 395)
-        if self.mode == 'f01':
-            # 用f0数据。
-            f0 = f0[:, :mel.shape[1]]
-        elif self.mode == 'f02':
-            # 用f0的均值代替f0，简化f0。
-            f0 = f0.flatten()
-            f0_value = np.mean(f0[f0 > 10])
-            f0 = np.ones((1, mel.shape[1])) * f0_value
-        elif self.mode == 'f03':
-            # 用零向量填充f0。
-            f0 = np.zeros((1, mel.shape[1]))
-        elif self.mode == 'f04':
-            # 不用f0。
-            f0 = None
-        elif self.mode == 'f05s02':
-            # 音色控制，用发音人id，等距分配，speaker_id设置为0。
-            f0_value = speaker_id[0] / len(self.speaker_ids)
-            f0 = np.ones((1, mel.shape[1])) * f0_value
-            speaker_id = speaker_id * 0
+        f0_data = np.load(fpath)
+        epath = onedir.joinpath("embed.npy")
+        if epath.is_file():
+            embed_data = np.load(epath)
         else:
-            # 默认：不用f0。
-            f0 = None
-        if isinstance(f0, np.ndarray):
-            f0 = torch.from_numpy(f0)
-        return (text, mel, speaker_id, f0)
+            embed_data = None
+
+        out = transform_data_train(
+            hparams=self.hparams,
+            text_data=text_data,
+            mel_data=mel_data,
+            speaker_data=speaker_data,
+            f0_data=f0_data,
+            embed_data=embed_data)
+        return out
 
     def create_speaker_lookup_table(self, audiopaths_and_text):
         speaker_ids = np.sort(np.unique([x[-1] if len(x) >= 3 else '0' for x in audiopaths_and_text]))
@@ -164,18 +255,18 @@ class TextMelLoader(torch.utils.data.Dataset):
                     out = self.get_data_train(self.audiopaths_and_text[tmp][0])
                     if tmp != index:
                         logger.info(
-                            'The index <{}> loaded success!\n{}\n'.format(tmp, '-' * 50))
+                            'The index <{}> loaded success! <Train>\n{}\n'.format(tmp, '-' * 50))
                     return out
                 except:
                     logger.info(
-                        'The index <{}> loaded failed!'.format(index, tmp))
+                        'The index <{}> loaded failed! <Train>'.format(index, tmp))
                     tmp = np.random.randint(0, len(self.audiopaths_and_text) - 1)
         else:
             try:  # 数据预处理模式容错。
                 out = self.get_data(self.audiopaths_and_text[index])
                 return out
             except Exception as e:
-                logger.info('The index <{}> loaded failed!'.format(index))
+                logger.info('The index <{}> loaded failed! <Preprocess>'.format(index))
                 return
 
     def __len__(self):
@@ -213,6 +304,10 @@ class TextMelCollate():
         if max_target_len % self.n_frames_per_step != 0:
             max_target_len += self.n_frames_per_step - max_target_len % self.n_frames_per_step
             assert max_target_len % self.n_frames_per_step == 0
+        try:
+            num_f0s = batch[0][3].size(0)  # 获取f0s的维度。
+        except:
+            num_f0s = 1
 
         # include mel padded, gate padded and speaker ids
         mel_padded = torch.FloatTensor(len(batch), num_mels, max_target_len)
@@ -221,7 +316,7 @@ class TextMelCollate():
         gate_padded.zero_()
         output_lengths = torch.LongTensor(len(batch))
         speaker_ids = torch.LongTensor(len(batch))
-        f0_padded = torch.FloatTensor(len(batch), 1, max_target_len)
+        f0_padded = torch.FloatTensor(len(batch), num_f0s, max_target_len)
         f0_padded.zero_()
 
         for i in range(len(ids_sorted_decreasing)):

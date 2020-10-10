@@ -235,7 +235,8 @@ class Decoder(nn.Module):
 
         if hparams.prenet_f0_dim > 0:
             self.prenet_f0 = ConvNorm(
-                1, hparams.prenet_f0_dim,
+                hparams.prenet_f0_dim,  # 输入f0s的维度。
+                hparams.prenet_f0_dim,
                 kernel_size=hparams.prenet_f0_kernel_size,
                 padding=max(0, int(hparams.prenet_f0_kernel_size / 2)),
                 bias=False, stride=1, dilation=1)
@@ -282,7 +283,7 @@ class Decoder(nn.Module):
 
     def get_end_f0(self, f0s):
         B = f0s.size(0)
-        dummy = Variable(f0s.data.new(B, 1, f0s.size(1)).zero_())
+        dummy = Variable(f0s.data.new(B, f0s.size(1), 1).zero_())  # 获取最后一个f0，最后1维为1。
         return dummy
 
     def initialize_decoder_states(self, memory, mask):

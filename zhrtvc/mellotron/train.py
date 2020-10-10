@@ -56,10 +56,10 @@ def init_distributed(hparams, n_gpus, rank, group_name):
     print("Done initializing distributed")
 
 
-def prepare_dataloaders(hparams):
+def prepare_dataloaders(input_directory, hparams):
     # Get data, data loaders and collate function ready
-    trainset = TextMelLoader(hparams.training_files, hparams, mode=hparams.train_mode)
-    valset = TextMelLoader(hparams.validation_files, hparams,
+    trainset = TextMelLoader(os.path.join(input_directory, 'train.txt'), hparams, mode=hparams.train_mode)
+    valset = TextMelLoader(os.path.join(input_directory, 'validation.txt'), hparams,
                            speaker_ids=trainset.speaker_ids, mode=hparams.train_mode)
     collate_fn = TextMelCollate(hparams.n_frames_per_step)
 
@@ -184,7 +184,7 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
         logger.log_validation(val_loss, model, y, y_pred, iteration, x)
 
 
-def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
+def train(input_directory, output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
           rank, group_name, hparams):
     """Training and validation logging results to tensorboard and stdout
 
@@ -221,7 +221,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     logger = prepare_directories_and_logger(
         output_directory, log_directory, rank)
 
-    train_loader, valset, collate_fn, train_sampler = prepare_dataloaders(hparams)
+    train_loader, valset, collate_fn, train_sampler = prepare_dataloaders(input_directory, hparams)
 
     # 记录训练的元数据。
     meta_folder = os.path.join(output_directory, 'metadata')
@@ -319,11 +319,14 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 if __name__ == '__main__':
     try:
         from setproctitle import setproctitle
+
         setproctitle('zhrtvc-mellotron-train')
     except ImportError:
         pass
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input_directory', type=str, default=r"../../data/SV2TTS/mellotron/samples_ssml",
+                        help='directory to save checkpoints')
     parser.add_argument('-o', '--output_directory', type=str, default=r"../../models/mellotron/samples_ssml",
                         help='directory to save checkpoints')
     parser.add_argument('-l', '--log_directory', type=str, default='tensorboard',
@@ -338,7 +341,7 @@ if __name__ == '__main__':
                         required=False, help='rank of current gpu')
     parser.add_argument('--group_name', type=str, default='group_name',
                         required=False, help='Distributed group name')
-    parser.add_argument('--hparams', type=str, default='{"batch_size":64,"iters_per_checkpoint":5000}',
+    parser.add_argument('--hparams', type=str, default='{"batch_size":4,"iters_per_checkpoint":10}',
                         required=False, help='comma separated name=value pairs')
 
     args = parser.parse_args()
@@ -360,5 +363,7 @@ if __name__ == '__main__':
     obj = args.__dict__
     json_dump(obj, path)
 
-    train(args.output_directory, args.log_directory, args.checkpoint_path,
+    train(args.input_directory, args.output_directory, args.log_directory, args.checkpoint_path,
           args.warm_start, args.n_gpus, args.rank, args.group_name, hparams)
+    # 命令行执行：
+    # python train.py -i ../../data/SV2TTS/mellotron/aliaudio -o ../../models/mellotron/aliaudio-f06s02 --hparams {\"batch_size\":64,\"iters_per_checkpoint\":5000}

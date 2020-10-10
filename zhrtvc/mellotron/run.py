@@ -45,8 +45,6 @@ def gen_filelists():
                 fout.write(("|".join(line)) + "\n")
 
 
-
-
 def read(fpath):
     wav, sr = librosa.load(fpath)
     out = wav * (2 ** 15 - 1)
@@ -80,8 +78,96 @@ def run_aliaudio():
                 out = f'{audio_path}\t{text}\t{spk}\n'
                 fout.write(out)
 
+
+def run_umap():
+    import umap
+    from sklearn.manifold import TSNE
+    from sklearn import manifold
+    from sklearn.decomposition import PCA
+    from sklearn.decomposition import TruncatedSVD
+    from sklearn.decomposition import FastICA
+
+    txt_fpath = r'../../data/SV2TTS/mellotron/linear/train.txt'
+    npy_dir = Path(txt_fpath).parent.joinpath('npy')
+    ids = []
+    with open(txt_fpath, encoding='utf8') as fin:
+        for line in fin:
+            embed_fpath = npy_dir.joinpath(line.split('\t')[0], 'embed.npy')
+            ids.append(embed_fpath)
+
+    data = []
+    data_train = []
+    for num, fpath in enumerate(ids):
+        vec = np.load(fpath)
+        if not (150 <= num < 250):
+            data.append(vec)
+        else:
+            data_train.append(vec)
+    data = np.array(data)
+    data_train = np.array(data_train)
+    print(data.shape, data_train.shape)
+
+    n_dim = 3
+    umap_data_3 = umap.UMAP(n_components=n_dim, n_neighbors=5, min_dist=0.9).fit_transform(data)
+    tsne_data_3 = TSNE(n_components=3, n_iter=300).fit_transform(data)
+    isomap_data_3 = manifold.Isomap(n_components=n_dim, n_neighbors=5, n_jobs=-1).fit_transform(data)
+    pca_data_3 = PCA(n_components=n_dim).fit_transform(data)
+    svd_data_3 = TruncatedSVD(n_components=n_dim, random_state=42).fit_transform(data)
+    ica_data_3 = FastICA(n_components=n_dim, random_state=12).fit_transform(data)
+    top_data_3 = data[:, ::data.shape[1] // n_dim]
+    top_data_16 = data[:, ::256 // n_dim]
+
+    pca = PCA(n_components=n_dim, random_state=42)
+    pca_model = pca.fit(data_train)
+    top_data_16 = pca_model.transform(data)
+
+
+    # n_neighbors确定使用的相邻点的数量
+    # min_dist控制允许嵌入的紧密程度。值越大，嵌入点的分布越均匀
+    # 让我们可视化一下这个变换：
+
+
+    # umap_model = umap.UMAP(n_neighbors=5, min_dist=0.1, n_components=2)
+    # out_model = umap_model.fit(data)
+    # umap_data = out_model.transform(data)
+    # umap_data = umap_data_3
+    # plt.figure(figsize=(12, 8))
+    # plt.title('Decomposition using UMAP')
+    # plt.scatter(umap_data[:, 0], umap_data[:, 1])
+    # plt.scatter(umap_data[:, 1], umap_data[:, 2])
+    # plt.scatter(umap_data[:, 2], umap_data[:, 0])
+    # plt.show()
+
+
+
+    from sklearn.metrics.pairwise import paired_cosine_distances
+    from sklearn.metrics.pairwise import cosine_similarity
+
+    plt.subplot('331')
+    plt.imshow(cosine_similarity(data, data))
+    plt.subplot('332')
+    plt.imshow(cosine_similarity(top_data_3, top_data_3))
+    plt.subplot('333')
+    plt.imshow(cosine_similarity(top_data_16, top_data_16))
+    plt.subplot('334')
+    plt.imshow(cosine_similarity(umap_data_3, umap_data_3))
+    plt.subplot('335')
+    plt.imshow(cosine_similarity(tsne_data_3, tsne_data_3))
+    plt.subplot('336')
+    plt.imshow(cosine_similarity(isomap_data_3, isomap_data_3))
+    plt.subplot('337')
+    plt.imshow(cosine_similarity(pca_data_3, pca_data_3))
+    plt.subplot('338')
+    plt.imshow(cosine_similarity(svd_data_3, svd_data_3))
+    plt.subplot('339')
+    plt.imshow(cosine_similarity(ica_data_3, ica_data_3))
+
+
+    plt.show()
+
 if __name__ == "__main__":
     print(__file__)
     # gen_filelists()
     # load_flac()
-    run_aliaudio()
+    # run_aliaudio()
+    run_umap()
