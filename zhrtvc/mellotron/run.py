@@ -165,9 +165,24 @@ def run_umap():
 
     plt.show()
 
+
+def combine_train_txt(*args, outpath):
+    outs = []
+    for inpath in args:
+        tmp = '/'.join(Path(inpath).parent.relative_to(Path(outpath).parent).parts)
+        for line in open(inpath, encoding='utf8'):
+            outs.append(f'{tmp}/{line}')
+
+    with open(outpath, 'wt', encoding='utf8') as fout:
+        for line in outs:
+            fout.write(line)
+
 if __name__ == "__main__":
     print(__file__)
     # gen_filelists()
     # load_flac()
     # run_aliaudio()
-    run_umap()
+    # run_umap()
+    combine_train_txt(r'F:\github\zhrtvc\data\samples\metadata.csv',
+                      r'F:\github\zhrtvc\data\samples_ssml\metadata.csv',
+                      outpath=r'F:\github\zhrtvc\data\metadata.csv')

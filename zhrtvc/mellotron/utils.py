@@ -81,7 +81,8 @@ def load_filepaths_and_text_train(filename, split="|"):
     with open(filename, encoding='utf-8') as f:
         for line in f:
             tmp = line.strip().split(split)
-            tmp[0] = os.path.join(curdir, 'npy', tmp[0])
+            dirname, basename = os.path.split(tmp[0])
+            tmp[0] = os.path.join(curdir, dirname, 'npy', basename)
             filepaths_and_text.append(tmp)
     return filepaths_and_text
 

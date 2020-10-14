@@ -341,7 +341,7 @@ if __name__ == '__main__':
                         required=False, help='rank of current gpu')
     parser.add_argument('--group_name', type=str, default='group_name',
                         required=False, help='Distributed group name')
-    parser.add_argument('--hparams', type=str, default='{"batch_size":4,"iters_per_checkpoint":10}',
+    parser.add_argument('--hparams', type=str, default='{"batch_size":4,"iters_per_checkpoint":10,"learning_rate":0.0001}',
                         required=False, help='comma separated name=value pairs')
 
     args = parser.parse_args()
@@ -366,4 +366,4 @@ if __name__ == '__main__':
     train(args.input_directory, args.output_directory, args.log_directory, args.checkpoint_path,
           args.warm_start, args.n_gpus, args.rank, args.group_name, hparams)
     # 命令行执行：
-    # python train.py -i ../../data/SV2TTS/mellotron/aliaudio -o ../../models/mellotron/aliaudio-f06s02 --hparams {\"batch_size\":64,\"iters_per_checkpoint\":5000}
+    # python train.py -i ../../data/SV2TTS/mellotron -o ../../models/mellotron/aliaudio-f06s02 -c ../../models/mellotron/aliaudio-f06s02/checkpoint-040000.pt

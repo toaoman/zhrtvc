@@ -14,7 +14,7 @@ import torch
 
 from model import Tacotron2, load_model
 from text import cmudict, text_to_sequence
-from utils import inv_linear_spectrogram
+from utils import inv_linear_spectrogram, load_wav
 
 from hparams import create_hparams
 from data_utils import transform_data_train
@@ -23,7 +23,7 @@ from data_utils import transform_mel, transform_text, transform_f0, transform_em
 
 _mellotron = None
 _device = 'cpu'
-
+_encoder_model_fpath = ''
 
 def load_model_mellotron(model_path):
     global _mellotron
@@ -31,16 +31,24 @@ def load_model_mellotron(model_path):
     _mellotron.load_state_dict(torch.load(model_path, map_location=_device)['state_dict'])
 
 
-def synthesize_one(text, speaker='Aiyue', f0=None, model_path='', with_alignment=False):
+def synthesize_one(text, speaker='Aiyue', model_path='', with_alignment=False):
     if _mellotron is None:
         load_model_mellotron(model_path)
 
     text_encoded = torch.LongTensor(transform_text(text, text_cleaners='hanzi'))[None, :].to(_device)
 
-    speaker_id = torch.LongTensor(transform_speaker(speaker, speaker_ids={})).to(_device)
+    speaker_id = torch.LongTensor(transform_speaker('', speaker_ids={})).to(_device)
     style_input = 0
-    pitch_contour = torch.zeros(1, _hparams.prenet_f0_dim, text_encoded.shape[1] * 5, dtype=torch.float)
+
+    # pitch_contour = torch.ones(1, _hparams.prenet_f0_dim, text_encoded.shape[1] * 5, dtype=torch.float) * np.random.random()
     # pitch_contour = None
+
+    wav = load_wav(str(speaker), sr=_hparams.sampling_rate)
+    embed = transform_embed(wav, _encoder_model_fpath)
+    embed = embed[::embed.shape[0] // _hparams.prenet_f0_dim]
+    embed = embed if embed.shape[0] == _hparams.prenet_f0_dim else embed[:_hparams.prenet_f0_dim]
+    f0 = np.tile(embed, (text_encoded.shape[1] * 5, 1)).T
+    pitch_contour = torch.from_numpy(f0[None])
 
     with torch.no_grad():
         mel_outputs, mel_outputs_postnet, gate_outputs, alignments = _mellotron.inference(
@@ -149,6 +157,9 @@ xinqing_texts = """生活岂能百般如意
 别让自己活得太累。应该学着想开、看淡，学着不强求，学着深藏。适时放松自己，寻找宣泄，给疲惫的心灵解解压。
 人之所以会烦恼，就是记性太好，记住了那些不该记住的东西。所以，记住快乐的事，忘记令你悲伤的事。""".split("\n")
 
+
+aliaudio_fpaths = [str(w) for w in sorted(Path(r'../../data/samples/aliaudio').glob('*/*.mp3'))]
+
 if __name__ == "__main__":
     import aukit
     import time
@@ -159,12 +170,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--checkpoint_path', type=str,
-                        default=r"../../models/mellotron/samples_ssml/checkpoint-000000.pt",
+                        default=r"../../models/mellotron/aliaudio-f06s02/checkpoint-030000.pt",
                         help='模型路径。')
     parser.add_argument('-s', '--speakers_path', type=str,
-                        default=r"../../models/mellotron/samples_ssml/metadata/speakers.json",
+                        default=r"../../models/mellotron/aliaudio-f06s02/metadata/speakers.json",
                         help='发音人映射表路径。')
-    parser.add_argument("-o", "--out_dir", type=Path, default="../../models/mellotron/aliaudio-v1/test",
+    parser.add_argument("-o", "--out_dir", type=Path, default="../../models/mellotron/aliaudio-f06s02/test",
                         help='保存合成的数据路径。')
     parser.add_argument("-p", "--play", type=int, default=1,
                         help='是否合成语音后自动播放语音。')
@@ -172,6 +183,9 @@ if __name__ == "__main__":
                         required=False, help='number of gpus')
     parser.add_argument('--hparams', type=str, default='{"train_mode":"train-f06s02","prenet_f0_dim":8}',
                         required=False, help='comma separated name=value pairs')
+    parser.add_argument("-e", "--encoder_model_fpath", type=Path,
+                        default=r"../../models/encoder/saved_models/ge2e_pretrained.pt",
+                        help="Path your trained encoder model.")
 
     args = parser.parse_args()
 
@@ -180,6 +194,7 @@ if __name__ == "__main__":
     model_path = args.checkpoint_path
     load_model_mellotron(model_path)
 
+    _encoder_model_fpath = args.encoder_model_fpath
     ## Print some environment information (for debugging purposes)
     print("Running a test of your configuration...\n")
     if torch.cuda.is_available():
@@ -195,7 +210,7 @@ if __name__ == "__main__":
                gpu_properties.total_memory / 1e9))
 
     ## Run a test
-    spec, align = synthesize_one('你好，欢迎使用语言合成服务。', 0, with_alignment=True)
+    spec, align = synthesize_one('你好，欢迎使用语言合成服务。', aliaudio_fpaths[0], with_alignment=True)
     print("Spectrogram shape: {}".format(spec.shape))
     print("Alignment shape: {}".format(align.shape))
     wav = griffinlim_vocoder(spec)
@@ -209,12 +224,13 @@ if __name__ == "__main__":
     speaker_index_dict = json.load(open(args.speakers_path, encoding='utf8'))
     speaker_names = list(speaker_index_dict.keys())
     example_texts = xinqing_texts
+    example_fpaths = aliaudio_fpaths
     while True:
         try:
             # Get the reference audio filepath
             speaker = input("Speaker:\n")
             if not speaker.strip():
-                speaker = np.random.choice(speaker_names)
+                speaker = np.random.choice(example_fpaths)
             print('Speaker: {}'.format(speaker))
 
             ## Generating the spectrogram
@@ -225,7 +241,7 @@ if __name__ == "__main__":
             # The synthesizer works in batch, so you need to put your data in a list or numpy array
 
             print("Creating the spectrogram ...")
-            spec, align = synthesize_one(text, speaker_index_dict[speaker], with_alignment=True)
+            spec, align = synthesize_one(text, speaker=speaker, with_alignment=True)
             print("Spectrogram shape: {}".format(spec.shape))
             print("Alignment shape: {}".format(align.shape))
             ## Generating the waveform
