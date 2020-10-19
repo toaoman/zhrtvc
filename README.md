@@ -34,7 +34,7 @@ name: logs-synx.zip
 
 [智浪淘沙](https://github.com/zhilangtaosha)训练和分享。
 
-用中文的文本语音平行语料训练得到的语音合成器模型。
+用中文的文本语音平行语料zhvoice训练得到的语音合成器模型。
 
 链接: https://pan.baidu.com/s/1ovtu1n3eF7y0JzSxstQC7w
 
