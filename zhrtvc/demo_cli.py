@@ -21,6 +21,7 @@ import sys
 import shutil
 import json
 
+import aukit
 from toolbox.sentence import xinqing_texts
 
 example_texts = xinqing_texts
@@ -73,7 +74,19 @@ if __name__ == '__main__':
     ## Load the models one by one.
     print("Preparing the encoder, the synthesizer and the vocoder...")
     encoder.load_model(args.enc_model_fpath, device='cpu')
-    synthesizer = Synthesizer(args.syn_model_dir, low_mem=args.low_mem)
+
+    # 从模型目录导入hparams
+    hp_path = args.syn_model_dir.parent.joinpath("metas", "hparams.json")    # load from trained models
+    if hp_path.exists():
+        hparams = aukit.Dict2Obj(json.load(open(hp_path, encoding="utf8")))
+        print('hparams:')
+        print(json.dumps({k:v for k, v in hparams.items()}, ensure_ascii=False, indent=4))
+    else:
+        hparams = None
+        print('hparams:', hparams)
+
+    synthesizer = Synthesizer(args.syn_model_dir, low_mem=args.low_mem, hparams=hparams)
+
     # vocoder.load_model(args.voc_model_fpath)
 
     ## Run a test

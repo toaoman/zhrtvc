@@ -13,8 +13,6 @@ import librosa
 
 class Synthesizer:
     sample_rate = default_hparams.sample_rate
-    hparams = default_hparams
-
     def __init__(self, checkpoints_dir: Path, verbose=True, low_mem=False, hparams=None):
         """
         Creates a synthesizer ready for inference. The actual model isn't loaded in memory until
