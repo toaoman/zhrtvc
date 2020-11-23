@@ -176,7 +176,7 @@ def train(log_dir, args, hparams):
     json_dump(obj, path)
 
     path = os.path.join(meta_folder, "hparams.json")
-    obj = hparams.values()
+    obj = {k: v for k, v in hparams.items()}
     json_dump(obj, path)
 
     # Book keeping

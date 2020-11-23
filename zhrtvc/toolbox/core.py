@@ -201,9 +201,9 @@ class Toolbox:
         spec = Synthesizer.make_spectrogram(out)
         self.ui.draw_align(spec[::-1], "current")
 
-        name = filename_add_suffix(self.ui.selected_utterance.name, "_preprocessed")
-        speaker_name = self.ui.selected_utterance.speaker_name
-        self.add_real_utterance(out, name, speaker_name)
+        # name = filename_add_suffix(self.ui.selected_utterance.name, "_preprocessed")
+        # speaker_name = self.ui.selected_utterance.speaker_name
+        # self.add_real_utterance(out, name, speaker_name)
 
     def record(self):
         wav = self.ui.record_one(encoder.sampling_rate, 5)

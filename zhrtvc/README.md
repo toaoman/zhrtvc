@@ -199,6 +199,12 @@ mel文件路径和embed文件路径可以是相对路径（相对于train.txt所
 
 ## 版本记录
 
+### v1.1.9
+- 修正hparams报错的bug。
+- 修正toolbox显示的bug。
+- 确保samples能在synthesizer、melgan和mellotron上跑通。
+- 往后重点开发的合成器是mellotron。
+
 ### v1.1.7
 - 修改说明文档。
 - 修正已知BUG。

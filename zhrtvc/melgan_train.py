@@ -15,9 +15,12 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument("--save_path", type=str, help=r"your model save dir")
-    parser.add_argument("--load_path", type=str, help=r"pretrained generator model path")
-    parser.add_argument("--data_path", type=str, default=r"../data/samples/metadata.csv")
+    parser.add_argument("--save_path", type=str, default='../models/vocoder/saved_models/melgan/samples',
+                        help=r"your model save dir")
+    parser.add_argument("--load_path", type=str, default=None,
+                        help=r"pretrained generator model path")
+    parser.add_argument("--data_path", type=str, default=r"../data/samples/metadata.csv",
+                        help='metadata path')
     parser.add_argument("--start_step", default=0)
 
     parser.add_argument("--n_mel_channels", type=int, default=80)
@@ -31,7 +34,7 @@ if __name__ == "__main__":
     parser.add_argument("--lambda_feat", type=float, default=10)
     parser.add_argument("--cond_disc", action="store_true")
 
-    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--seq_len", type=int, default=8192)
 
     parser.add_argument("--epochs", type=int, default=3000)

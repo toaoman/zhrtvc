@@ -75,7 +75,7 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument("-i", "--input_fpath", type=Path,
-                        default=Path(r'../../data/SV2TTS/mellotron/samples_ssml/train.txt'),
+                        default=Path(r'../../data/SV2TTS/mellotron/samples/train.txt'),
                         help="文本路径。")
     parser.add_argument("-e", "--encoder_model_fpath", type=Path,
                         default=r"../../models/encoder/saved_models/ge2e_pretrained.pt",
@@ -94,5 +94,3 @@ if __name__ == "__main__":
         txt_fpath=args.input_fpath,
         skip_existing=args.skip_existing,
         encoder_model_fpath=args.encoder_model_fpath)
-    # 命令行执行：
-    # python preprocess_embed.py -i ../../data/SV2TTS/mellotron/aliaudio/train.txt -n 4

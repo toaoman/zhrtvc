@@ -5,7 +5,6 @@ from aukit import Dict2Obj, hparams_griffinlim
 
 def create_hparams(hparams_string=None, verbose=False, level=2):
     """Create model hyperparameters. Parse nondefault from given string."""
-    print(repr(hparams_string))
     # hparams = tf.contrib.training.HParams(
     hparams = Dict2Obj(dict(
         ################################

@@ -67,7 +67,7 @@ class AudioDataset(torch.utils.data.Dataset):
         """
         Loads wavdata into torch array
         """
-        data, sampling_rate = load(full_path, sr=self.sampling_rate)
+        data, sampling_rate = load(str(full_path), sr=self.sampling_rate)
         data = 0.95 * normalize(data)
 
         if self.augment:

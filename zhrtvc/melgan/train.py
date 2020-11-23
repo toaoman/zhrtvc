@@ -23,6 +23,9 @@ from pathlib import Path
 from tqdm import tqdm
 from aukit.audio_griffinlim import mel_spectrogram, default_hparams
 
+
+_device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 my_hp = {
     "n_fft": 1024, "hop_size": 256, "win_size": 1024,
     "sample_rate": 22050, "max_abs_value": 4.0,
@@ -70,7 +73,7 @@ def audio2mel(src):
     :param src:
     :return:
     """
-    mel = Audio2Mel().cuda()(src)
+    mel = Audio2Mel().to(_device)(src)
     return mel
 
 
@@ -111,11 +114,11 @@ def train_melgan(args):
     #######################
     # Load PyTorch Models #
     #######################
-    netG = Generator(args.n_mel_channels, args.ngf, args.n_residual_layers).cuda()
+    netG = Generator(args.n_mel_channels, args.ngf, args.n_residual_layers).to(_device)
     netD = Discriminator(
         args.num_D, args.ndf, args.n_layers_D, args.downsamp_factor
-    ).cuda()
-    # fft = Audio2Mel(n_mel_channels=args.n_mel_channels).cuda()
+    ).to(_device)
+    # fft = Audio2Mel(n_mel_channels=args.n_mel_channels).to(_device)
     fft = audio2mel
     # print(netG)
     # print(netD)
@@ -154,10 +157,10 @@ def train_melgan(args):
     test_voc = []
     test_audio = []
     for i, x_t in enumerate(test_loader):
-        x_t = x_t.cuda()
+        x_t = x_t.to(_device)
         s_t = fft(x_t).detach()
 
-        test_voc.append(s_t.cuda())
+        test_voc.append(s_t.to(_device))
         test_audio.append(x_t)
 
         audio = x_t.squeeze().cpu()
@@ -182,9 +185,9 @@ def train_melgan(args):
     for epoch in range(1, args.epochs + 1):
         print("\nEpoch {} beginning. Current step: {}".format(epoch, steps))
         for iterno, x_t in enumerate(tqdm(train_loader, desc="iter", ncols=100)):
-            x_t = x_t.cuda()
+            x_t = x_t.to(_device)
             s_t = fft(x_t).detach()
-            x_pred_t = netG(s_t.cuda())
+            x_pred_t = netG(s_t.to(_device))
 
             with torch.no_grad():
                 s_pred_t = fft(x_pred_t.detach())
@@ -193,8 +196,8 @@ def train_melgan(args):
             #######################
             # Train Discriminator #
             #######################
-            D_fake_det = netD(x_pred_t.cuda().detach())
-            D_real = netD(x_t.cuda())
+            D_fake_det = netD(x_pred_t.to(_device).detach())
+            D_real = netD(x_t.to(_device))
 
             loss_D = 0
             for scale in D_fake_det:
@@ -210,7 +213,7 @@ def train_melgan(args):
             ###################
             # Train Generator #
             ###################
-            D_fake = netD(x_pred_t.cuda())
+            D_fake = netD(x_pred_t.to(_device))
 
             loss_G = 0
             for scale in D_fake:

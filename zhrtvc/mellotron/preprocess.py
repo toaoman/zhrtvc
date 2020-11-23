@@ -107,12 +107,12 @@ if __name__ == "__main__":
         description="预处理训练数据，保存为numpy的npy格式，训练的时候直接从本地load数据。",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument("-i", "--metadata_path", type=str, default=r'../../data/samples_ssml/metadata.csv',
+    parser.add_argument("-i", "--metadata_path", type=str, default=r'../../data/samples/metadata.csv',
                         help="metadata file path")
     # 每行数据格式：语音文件路径\t文本\t说话人名称\n，样例：aliaudio/Aibao/005397.mp3	他走近钢琴并开始演奏“祖国从哪里开始”。	aibao
 
     parser.add_argument("-o", "--output_dir", type=Path,
-                        default=Path(r'../../data/SV2TTS/mellotron/samples_ssml'),
+                        default=Path(r'../../data/SV2TTS/mellotron/samples'),
                         help="Path to the output directory")
     parser.add_argument("-n", "--n_processes", type=int, default=0,
                         help="Number of processes in parallel.")
