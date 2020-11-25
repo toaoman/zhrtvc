@@ -22,20 +22,9 @@ from pathlib import Path
 
 from tqdm import tqdm
 from aukit.audio_griffinlim import mel_spectrogram, default_hparams
-
+from aukit import Dict2Obj
 
 _device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-my_hp = {
-    "n_fft": 1024, "hop_size": 256, "win_size": 1024,
-    "sample_rate": 22050, "max_abs_value": 4.0,
-    "fmin": 0, "fmax": 8000,
-    "preemphasize": True,
-    'symmetric_mels': True,
-}
-default_hparams.update(my_hp)
-
-_pad_len = (default_hparams.n_fft - default_hparams.hop_size) // 2
 
 
 def parse_args():
@@ -63,6 +52,11 @@ def parse_args():
     parser.add_argument("--log_interval", type=int, default=100)
     parser.add_argument("--save_interval", type=int, default=1000)
     parser.add_argument("--n_test_samples", type=int, default=4)
+
+    parser.add_argument("--sample_rate", type=int, default=22050)
+    parser.add_argument("--mode", type=str, default='synthesizer')
+    parser.add_argument("--ratios", type=str, default='8 8 2 2')
+
     args = parser.parse_args()
     return args
 
@@ -77,16 +71,57 @@ def audio2mel(src):
     return mel
 
 
-def audio2mel_v2(src):
+_sr = 22050
+my_hp = {
+    "n_fft": 1024,  # 800
+    "hop_size": 256,  # 200
+    "win_size": 1024,  # 800
+    "sample_rate": _sr,  # 16000
+    "fmin": 0,  # 55
+    "fmax": _sr // 2,  # 7600
+    "preemphasize": False,  # True
+    'symmetric_mels': True,  # True
+    'signal_normalization': False,  # True
+    'allow_clipping_in_normalization': False,  # True
+    'ref_level_db': 0,  # 20
+    'center': False,  # True
+    '__file__': __file__
+}
+
+synthesizer_hparams = {k: v for k, v in default_hparams.items()}
+synthesizer_hparams = {**synthesizer_hparams, **my_hp}
+synthesizer_hparams = Dict2Obj(synthesizer_hparams)
+
+
+def audio2mel_synthesizer(src):
     """
-    用aukit模块重现生成mel。
+    用aukit模块重现生成mel，和synthesizer的频谱适应。
+    :param src:
+    :return:
+    """
+    _pad_len = (synthesizer_hparams.n_fft - synthesizer_hparams.hop_size) // 2
+    wavs = src.cpu().numpy()
+    mels = []
+    for wav in wavs:
+        wav = np.pad(wav.flatten(), (_pad_len, _pad_len), mode="reflect")
+        mel = mel_spectrogram(wav, synthesizer_hparams)
+        mel = mel / 20
+        mels.append(mel)
+    mels = torch.from_numpy(np.array(mels).astype(np.float32))
+    return mels
+
+
+# default_hparams.center = False
+def audio2mel_mellotron(src):
+    """
+    用aukit模块重现生成mel，和mellotron的频谱适应。
     :param src:
     :return:
     """
     wavs = src.cpu().numpy()
     mels = []
     for wav in wavs:
-        wav = np.pad(wav.flatten(), (_pad_len, _pad_len), mode="reflect")
+        wav = wav.flatten()[:-1]  # 避免生成多一个空帧频谱
         mel = mel_spectrogram(wav, default_hparams)
         mels.append(mel)
     mels = torch.from_numpy(np.array(mels).astype(np.float32))
@@ -114,12 +149,20 @@ def train_melgan(args):
     #######################
     # Load PyTorch Models #
     #######################
-    netG = Generator(args.n_mel_channels, args.ngf, args.n_residual_layers).to(_device)
+    ratios = [int(w) for w in args.ratios.split()]
+    netG = Generator(args.n_mel_channels, args.ngf, args.n_residual_layers, ratios=ratios).to(_device)
     netD = Discriminator(
         args.num_D, args.ndf, args.n_layers_D, args.downsamp_factor
     ).to(_device)
     # fft = Audio2Mel(n_mel_channels=args.n_mel_channels).to(_device)
-    fft = audio2mel
+    if args.mode == 'default':
+        fft = audio2mel
+    elif args.mode == 'synthesizer':
+        fft = audio2mel_synthesizer
+    elif args.mode == 'mellotron':
+        fft = audio2mel_mellotron
+    else:
+        raise KeyError
     # print(netG)
     # print(netD)
 
@@ -139,12 +182,12 @@ def train_melgan(args):
     # Create data loaders #
     #######################
     train_set = AudioDataset(
-        Path(args.data_path), args.seq_len, sampling_rate=22050
+        Path(args.data_path), args.seq_len, sampling_rate=args.sample_rate
     )
     test_set = AudioDataset(
-        Path(args.data_path),   # test file
-        22050 * 4,
-        sampling_rate=22050,
+        Path(args.data_path),  # test file
+        args.sample_rate * 4,
+        sampling_rate=args.sample_rate,
         augment=False,
     )
 
@@ -166,8 +209,8 @@ def train_melgan(args):
         audio = x_t.squeeze().cpu()
         oridir = root / "original"
         oridir.mkdir(exist_ok=True)
-        save_sample(oridir / ("original_{}_{}.wav".format("test", i)), 22050, audio)
-        writer.add_audio("original/{}/sample_{}.wav".format("test", i), audio, 0, sample_rate=22050)
+        save_sample(oridir / ("original_{}_{}.wav".format("test", i)), args.sample_rate, audio)
+        writer.add_audio("original/{}/sample_{}.wav".format("test", i), audio, 0, sample_rate=args.sample_rate)
 
         if i == args.n_test_samples - 1:
             break
@@ -185,6 +228,8 @@ def train_melgan(args):
     for epoch in range(1, args.epochs + 1):
         print("\nEpoch {} beginning. Current step: {}".format(epoch, steps))
         for iterno, x_t in enumerate(tqdm(train_loader, desc="iter", ncols=100)):
+            # torch.Size([4, 1, 8192]) torch.Size([4, 80, 32])
+            # 8192 = 32 x 256
             x_t = x_t.to(_device)
             s_t = fft(x_t).detach()
             x_pred_t = netG(s_t.to(_device))
@@ -250,12 +295,12 @@ def train_melgan(args):
                         pred_audio = pred_audio.squeeze().cpu()
                         gendir = root / "generated"
                         gendir.mkdir(exist_ok=True)
-                        save_sample(gendir / ("generated_step{}_{}.wav".format(steps, i)), 22050, pred_audio)
+                        save_sample(gendir / ("generated_step{}_{}.wav".format(steps, i)), args.sample_rate, pred_audio)
                         writer.add_audio(
                             "generated/step{}/sample_{}.wav".format(steps, i),
                             pred_audio,
                             epoch,
-                            sample_rate=22050,
+                            sample_rate=args.sample_rate,
                         )
 
                 ptdir = root / "models"
@@ -288,4 +333,5 @@ def train_melgan(args):
 
 
 if __name__ == "__main__":
-    train_melgan()
+    args = parse_args()
+    train_melgan(args)

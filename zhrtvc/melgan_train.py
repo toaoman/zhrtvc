@@ -35,12 +35,17 @@ if __name__ == "__main__":
     parser.add_argument("--cond_disc", action="store_true")
 
     parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--seq_len", type=int, default=8192)
+    parser.add_argument("--seq_len", type=int, default=4800)  # 8192
 
     parser.add_argument("--epochs", type=int, default=3000)
     parser.add_argument("--log_interval", type=int, default=100)
     parser.add_argument("--save_interval", type=int, default=1000)
     parser.add_argument("--n_test_samples", type=int, default=4)
+
+    parser.add_argument("--sample_rate", type=int, default=16000)
+    parser.add_argument("--mode", type=str, default='mellotron')
+    parser.add_argument("--ratios", type=str, default='5 5 4 2')  # '8 8 2 2'
+
     args = parser.parse_args()
 
     print_args(args, parser)

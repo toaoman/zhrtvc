@@ -5,7 +5,7 @@ import math
 from numpy import finfo
 
 import torch
-from distributed import apply_gradient_allreduce
+from .distributed import apply_gradient_allreduce
 import torch.distributed as dist
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
@@ -15,14 +15,16 @@ from data_utils import TextMelLoader, TextMelCollate
 from loss_function import Tacotron2Loss
 from logger import Tacotron2Logger
 from hparams import create_hparams
-from utils import inv_linearspectrogram
+from mellotron.utils import inv_linearspectrogram
 
 from pathlib import Path
 import matplotlib.pyplot as plt
 import aukit
 import json
+import shutil
+import numpy as np
 
-_device = 'cpu'
+_device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 def json_dump(obj, path):
@@ -126,7 +128,7 @@ def save_checkpoint(model, optimizer, learning_rate, iteration, filepath):
 
 
 def validate(model, criterion, valset, iteration, batch_size, n_gpus,
-             collate_fn, logger, distributed_run, rank, outdir=Path()):
+             collate_fn, logger, distributed_run, rank, outdir=Path(), hparams=None):
     """Handles all the validation scoring and printing"""
     save_flag = True
     model.eval()
@@ -221,11 +223,30 @@ def train(input_directory, output_directory, log_directory, checkpoint_path, war
     logger = prepare_directories_and_logger(
         output_directory, log_directory, rank)
 
-    train_loader, valset, collate_fn, train_sampler = prepare_dataloaders(input_directory, hparams)
-
     # 记录训练的元数据。
     meta_folder = os.path.join(output_directory, 'metadata')
     os.makedirs(meta_folder, exist_ok=True)
+
+    trpath = os.path.join(meta_folder, "train.txt")
+    vapath = os.path.join(meta_folder, "validation.txt")
+    with open(trpath, 'wt', encoding='utf8') as fout_tr, open(vapath, 'wt', encoding='utf8') as fout_va:
+        lines = open(input_directory, encoding='utf8').readlines()
+        val_ids = set(np.random.choice(list(range(len(lines))), hparams.batch_size * 2, replace=False))
+        for num, line in enumerate(lines):
+            parts = line.strip().split('\t')
+            abspath = os.path.join(os.path.dirname(os.path.abspath(input_directory)), parts[0]).replace('\\', '/')
+            text = parts[1]
+            if len(parts) >= 3:
+                speaker = parts[2]
+            else:
+                speaker = '0'
+            out = f'{abspath}\t{text}\t{speaker}\n'
+            if num in val_ids:
+                fout_va.write(out)
+            else:
+                fout_tr.write(out)
+
+    train_loader, valset, collate_fn, train_sampler = prepare_dataloaders(meta_folder, hparams)
 
     path = os.path.join(meta_folder, "speakers.json")
     obj = dict(valset.speaker_ids)
@@ -306,7 +327,7 @@ def train(input_directory, output_directory, log_directory, checkpoint_path, war
             if not is_overflow and (iteration % hparams.iters_per_checkpoint == 0):
                 validate(model, criterion, valset, iteration,
                          hparams.batch_size, n_gpus, collate_fn, logger,
-                         hparams.distributed_run, rank, outdir=Path(output_directory))
+                         hparams.distributed_run, rank, outdir=Path(output_directory), hparams=hparams)
                 if rank == 0:
                     checkpoint_path = os.path.join(
                         output_directory, "checkpoint-{:06d}.pt".format(iteration))
@@ -325,9 +346,9 @@ if __name__ == '__main__':
         pass
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input_directory', type=str, default=r"../../data/SV2TTS/mellotron/samples_ssml",
+    parser.add_argument('-i', '--input_directory', type=str, default=r'../../data/samples/metadata.csv',
                         help='directory to save checkpoints')
-    parser.add_argument('-o', '--output_directory', type=str, default=r"../../models/mellotron/samples_ssml",
+    parser.add_argument('-o', '--output_directory', type=str, default=r"../../models/mellotron/samples",
                         help='directory to save checkpoints')
     parser.add_argument('-l', '--log_directory', type=str, default='tensorboard',
                         help='directory to save tensorboard logs')
@@ -341,7 +362,8 @@ if __name__ == '__main__':
                         required=False, help='rank of current gpu')
     parser.add_argument('--group_name', type=str, default='group_name',
                         required=False, help='Distributed group name')
-    parser.add_argument('--hparams', type=str, default='{"batch_size":4,"iters_per_checkpoint":10,"learning_rate":0.0001}',
+    parser.add_argument('--hparams', type=str,
+                        default='{"batch_size":4,"iters_per_checkpoint":10,"learning_rate":0.0001}',
                         required=False, help='comma separated name=value pairs')
 
     args = parser.parse_args()

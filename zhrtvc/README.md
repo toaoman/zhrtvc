@@ -197,7 +197,89 @@ mel文件路径和embed文件路径可以是相对路径（相对于train.txt所
 如果多个数据一起用，可以用绝对路径表示，汇总到一个train.txt文件，便于训练。
 
 
+3. 训练mellotron模型。
+
+```markdown
+usage: mellotron_train.py [-h] [-i INPUT_DIRECTORY] [-o OUTPUT_DIRECTORY]
+                          [-l LOG_DIRECTORY] [-c CHECKPOINT_PATH]
+                          [--warm_start] [--n_gpus N_GPUS] [--rank RANK]
+                          [--group_name GROUP_NAME] [--hparams HPARAMS]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i INPUT_DIRECTORY, --input_directory INPUT_DIRECTORY
+                        directory to save checkpoints
+  -o OUTPUT_DIRECTORY, --output_directory OUTPUT_DIRECTORY
+                        directory to save checkpoints
+  -l LOG_DIRECTORY, --log_directory LOG_DIRECTORY
+                        directory to save tensorboard logs
+  -c CHECKPOINT_PATH, --checkpoint_path CHECKPOINT_PATH
+                        checkpoint path
+  --warm_start          load model weights only, ignore specified layers
+  --n_gpus N_GPUS       number of gpus
+  --rank RANK           rank of current gpu
+  --group_name GROUP_NAME
+                        Distributed group name
+  --hparams HPARAMS     comma separated name=value pairs
+
+```
+
+4. 训练melgan模型。
+```markdown
+usage: melgan_train.py [-h] [--save_path SAVE_PATH] [--load_path LOAD_PATH]
+                       [--data_path DATA_PATH] [--start_step START_STEP]
+                       [--n_mel_channels N_MEL_CHANNELS] [--ngf NGF]
+                       [--n_residual_layers N_RESIDUAL_LAYERS] [--ndf NDF]
+                       [--num_D NUM_D] [--n_layers_D N_LAYERS_D]
+                       [--downsamp_factor DOWNSAMP_FACTOR]
+                       [--lambda_feat LAMBDA_FEAT] [--cond_disc]
+                       [--batch_size BATCH_SIZE] [--seq_len SEQ_LEN]
+                       [--epochs EPOCHS] [--log_interval LOG_INTERVAL]
+                       [--save_interval SAVE_INTERVAL]
+                       [--n_test_samples N_TEST_SAMPLES]
+                       [--sample_rate SAMPLE_RATE] [--mode MODE]
+                       [--ratios RATIOS]
+
+训练MelGAN声码器模型。
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --save_path SAVE_PATH
+                        your model save dir (default:
+                        ../models/vocoder/saved_models/melgan/samples)
+  --load_path LOAD_PATH
+                        pretrained generator model path (default: None)
+  --data_path DATA_PATH
+                        metadata path (default: ../data/samples/metadata.csv)
+  --start_step START_STEP
+  --n_mel_channels N_MEL_CHANNELS
+  --ngf NGF
+  --n_residual_layers N_RESIDUAL_LAYERS
+  --ndf NDF
+  --num_D NUM_D
+  --n_layers_D N_LAYERS_D
+  --downsamp_factor DOWNSAMP_FACTOR
+  --lambda_feat LAMBDA_FEAT
+  --cond_disc
+  --batch_size BATCH_SIZE
+  --seq_len SEQ_LEN
+  --epochs EPOCHS
+  --log_interval LOG_INTERVAL
+  --save_interval SAVE_INTERVAL
+  --n_test_samples N_TEST_SAMPLES
+  --sample_rate SAMPLE_RATE
+  --mode MODE
+  --ratios RATIOS
+
+```
+
+
 ## 版本记录
+
+### v1.2.0
+- 整理mellotron模型，修正bugs，简化训练方法。
+- 整理melgan模型，提供synthesizer和mellotron适配的声码器参数。
+
 
 ### v1.1.9
 - 修正hparams报错的bug。

@@ -17,13 +17,14 @@ import torch.utils.data
 import librosa
 
 import layers
+import traceback
 from pathlib import Path
-from utils import load_wav_to_torch, load_filepaths_and_text, load_filepaths_and_text_train
+from mellotron.utils import load_wav_to_torch, load_filepaths_and_text, load_filepaths_and_text_train
 from text import text_to_sequence, cmudict
 from yin import compute_yin
 
-from utils import melspectrogram_torch, linearspectrogram_torch
-from utils import linearspectrogram
+from mellotron.utils import melspectrogram_torch, linearspectrogram_torch
+from mellotron.utils import linearspectrogram
 
 
 def transform_embed(wav, encoder_model_fpath=Path()):
@@ -79,12 +80,29 @@ def transform_data_train(hparams, text_data, mel_data, speaker_data, f0_data, em
             mode = True
     else:
         mode = False
+    if isinstance(text_data, np.ndarray):
+        text = torch.from_numpy(text_data)  # (86,)
+    else:
+        text = text_data
 
-    text = torch.from_numpy(text_data)  # (86,)
-    mel = torch.from_numpy(mel_data)  # (80, 397)
+    if isinstance(mel_data, np.ndarray):
+        mel = torch.from_numpy(mel_data)  # (80, 397)
+    else:
+        mel = mel_data
+    if isinstance(speaker_data, np.ndarray):
+        speaker = speaker_data  # (1,)
+    else:
+        speaker = speaker_data.cpu().numpy()
+    if isinstance(f0_data, np.ndarray):
+        f0 = f0_data  # (1, 395)
+    else:
+        f0 = f0_data.cpu().numpy()
 
-    speaker = speaker_data  # (1,)
-    f0 = f0_data  # (1, 395)
+    if isinstance(embed_data, np.ndarray):
+        embed = embed_data  # (256,)
+    elif embed_data is not None:
+        embed = embed_data.cpu().numpy()
+
     if mode == 'f01':
         # 用f0数据。
         f0 = f0[:, :mel.shape[1]]
@@ -106,7 +124,6 @@ def transform_data_train(hparams, text_data, mel_data, speaker_data, f0_data, em
         speaker = speaker * 0
     elif mode == 'f06s02':
         # 音色控制，用降维的音频表示向量控制音色，speaker_id设置为0。
-        embed = embed_data  # (256,)
         embed = embed[::embed.shape[0] // hparams.prenet_f0_dim]
         embed = embed if embed.shape[0] == hparams.prenet_f0_dim else embed[:hparams.prenet_f0_dim]
         f0 = np.tile(embed, (mel.shape[1], 1)).T
@@ -116,7 +133,8 @@ def transform_data_train(hparams, text_data, mel_data, speaker_data, f0_data, em
         f0 = None
     if isinstance(f0, np.ndarray):
         f0 = torch.from_numpy(f0)
-    speaker = torch.from_numpy(speaker)
+    if isinstance(speaker, np.ndarray):
+        speaker = torch.from_numpy(speaker)
     return (text, mel, speaker, f0)
 
 
@@ -193,6 +211,18 @@ class TextMelLoader(torch.utils.data.Dataset):
             embed_data=embed_data)
         return out
 
+    def get_data_train_v2(self, data_dir):
+        (text_data, mel_data, speaker_data, f0_data) = self.get_data(data_dir)
+        embed_data = np.zeros(256)
+        out = transform_data_train(
+            hparams=self.hparams,
+            text_data=text_data,
+            mel_data=mel_data,
+            speaker_data=speaker_data,
+            f0_data=f0_data,
+            embed_data=embed_data)
+        return out
+
     def create_speaker_lookup_table(self, audiopaths_and_text):
         speaker_ids = np.sort(np.unique([x[-1] if len(x) >= 3 else '0' for x in audiopaths_and_text]))
         d = {speaker_ids[i]: i for i in range(len(speaker_ids))}
@@ -252,7 +282,8 @@ class TextMelLoader(torch.utils.data.Dataset):
             tmp = index
             while True:
                 try:  # 模型训练模式容错。
-                    out = self.get_data_train(self.audiopaths_and_text[tmp][0])
+                    # out = self.get_data_train(self.audiopaths_and_text[tmp][0])
+                    out = self.get_data_train_v2(self.audiopaths_and_text[tmp])
                     if tmp != index:
                         logger.info(
                             'The index <{}> loaded success! <Train>\n{}\n'.format(tmp, '-' * 50))
@@ -260,6 +291,7 @@ class TextMelLoader(torch.utils.data.Dataset):
                 except:
                     logger.info(
                         'The index <{}> loaded failed! <Train>'.format(index, tmp))
+                    traceback.print_exc()
                     tmp = np.random.randint(0, len(self.audiopaths_and_text) - 1)
         else:
             try:  # 数据预处理模式容错。

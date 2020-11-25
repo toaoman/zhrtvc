@@ -5,7 +5,7 @@ from plotting_utils import plot_alignment_to_numpy, plot_spectrogram_to_numpy
 from plotting_utils import plot_gate_outputs_to_numpy
 
 import json
-from utils import inv_linearspectrogram, default_hparams
+from mellotron.utils import inv_linearspectrogram, default_hparams
 from text import sequence_to_text
 
 
