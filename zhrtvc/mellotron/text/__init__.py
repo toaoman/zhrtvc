@@ -7,6 +7,35 @@
 from phkit.chinese import text_to_sequence as text_to_sequence_phkit, sequence_to_text, text2pinyin
 from .parse_ssml import convert_ssml
 
+# 韵律
+aishell3_symbol2phoneme = {'%': '6', '$': '7'}
+
+
+def fix_rhythm(src):
+    return aishell3_symbol2phoneme.get(src, src)
+
+
+def fix_erhua(src: str):
+    """
+    # 儿化音
+    # huor3 er4
+    # 韵母er改做儿化音
+    # huor3 -> huo3 er5 -> h uo 3 ee er 5
+    # er4 -> ee er 4
+    # SSB00050012|er2 zi5 % chen4 ji1 % wanr2 ba4 % ba5 de5 shou3 % ji1|儿子%趁机%玩儿%爸爸的%手机$
+    """
+    shengyun = src[:-1]
+    if shengyun.endswith('r') and shengyun != 'er':
+        return ' '.join([f'{shengyun[:-1]}{src[-1]}', 'er5'])
+    else:
+        return src
+
+
+def fix_pinyin(src):
+    out = fix_rhythm(src)
+    out = fix_erhua(out)
+    return out
+
 
 def text_to_sequence(text, cleaner_names, **kwargs):
     """
@@ -29,6 +58,13 @@ def text_to_sequence(text, cleaner_names, **kwargs):
             assert len(pin_lst) == len(pin_none)
             pin_lst = [pin_none[i] if w is None else w for i, w in enumerate(pin_lst)]
 
+        pin_text = ' '.join(pin_lst)
+        seq = text_to_sequence_phkit(pin_text, cleaner_names='pinyin')
+    elif cleaner_names == 'aishell3':
+        pin_lst = []
+        for w in text.split():
+            tmp = fix_pinyin(w)
+            pin_lst.extend(tmp.split())
         pin_text = ' '.join(pin_lst)
         seq = text_to_sequence_phkit(pin_text, cleaner_names='pinyin')
     else:

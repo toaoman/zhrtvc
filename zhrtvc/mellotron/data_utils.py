@@ -80,6 +80,7 @@ def transform_data_train(hparams, text_data, mel_data, speaker_data, f0_data, em
             mode = True
     else:
         mode = False
+
     if isinstance(text_data, np.ndarray):
         text = torch.from_numpy(text_data)  # (86,)
     else:
@@ -89,10 +90,12 @@ def transform_data_train(hparams, text_data, mel_data, speaker_data, f0_data, em
         mel = torch.from_numpy(mel_data)  # (80, 397)
     else:
         mel = mel_data
+
     if isinstance(speaker_data, np.ndarray):
         speaker = speaker_data  # (1,)
     else:
         speaker = speaker_data.cpu().numpy()
+
     if isinstance(f0_data, np.ndarray):
         f0 = f0_data  # (1, 395)
     else:
@@ -131,6 +134,7 @@ def transform_data_train(hparams, text_data, mel_data, speaker_data, f0_data, em
     else:
         # 默认：不用f0。
         f0 = None
+
     if isinstance(f0, np.ndarray):
         f0 = torch.from_numpy(f0)
     if isinstance(speaker, np.ndarray):
@@ -171,6 +175,7 @@ class TextMelLoader(torch.utils.data.Dataset):
         self.f0_max = hparams.f0_max
         self.harm_thresh = hparams.harm_thresh
         self.p_arpabet = hparams.p_arpabet
+        self.max_decoder_steps = hparams.max_decoder_steps
 
         self.f0_dim = hparams.prenet_f0_dim  # f0的维度设置
 
@@ -184,7 +189,9 @@ class TextMelLoader(torch.utils.data.Dataset):
             self.speaker_ids = self.create_speaker_lookup_table(self.audiopaths_and_text)
 
         # random.seed(1234)
-        # random.shuffle(self.audiopaths_and_text)
+        random.shuffle(self.audiopaths_and_text)
+
+        self.ids = set(range(len(self.audiopaths_and_text)))
 
     def get_data_train(self, data_dir):
         onedir = Path(data_dir)
@@ -213,7 +220,8 @@ class TextMelLoader(torch.utils.data.Dataset):
 
     def get_data_train_v2(self, data_dir):
         (text_data, mel_data, speaker_data, f0_data) = self.get_data(data_dir)
-        embed_data = np.zeros(256)
+        assert mel_data.shape[1] < self.max_decoder_steps
+        embed_data = np.zeros(256)  # 临时
         out = transform_data_train(
             hparams=self.hparams,
             text_data=text_data,
@@ -280,25 +288,29 @@ class TextMelLoader(torch.utils.data.Dataset):
     def __getitem__(self, index):
         if self.mode:
             tmp = index
+            if tmp not in self.ids:
+                tmp = np.random.choice(list(self.ids))
             while True:
                 try:  # 模型训练模式容错。
                     # out = self.get_data_train(self.audiopaths_and_text[tmp][0])
                     out = self.get_data_train_v2(self.audiopaths_and_text[tmp])
-                    if tmp != index:
-                        logger.info(
-                            'The index <{}> loaded success! <Train>\n{}\n'.format(tmp, '-' * 50))
+                    # if tmp != index:
+                    #     logger.info(
+                    #         'The index <{}> loaded success! <Train>\n{}\n'.format(tmp, '-' * 50))
                     return out
                 except:
                     logger.info(
                         'The index <{}> loaded failed! <Train>'.format(index, tmp))
                     traceback.print_exc()
-                    tmp = np.random.randint(0, len(self.audiopaths_and_text) - 1)
+                    self.ids.discard(tmp)
+                    tmp = np.random.choice(list(self.ids))
         else:
             try:  # 数据预处理模式容错。
                 out = self.get_data(self.audiopaths_and_text[index])
                 return out
             except Exception as e:
                 logger.info('The index <{}> loaded failed! <Preprocess>'.format(index))
+                traceback.print_exc()
                 return
 
     def __len__(self):

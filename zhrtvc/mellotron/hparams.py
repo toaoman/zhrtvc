@@ -25,17 +25,20 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         ################################
         # Data Parameters             #
         ################################
-        train_mode='train-f06s02',
-        # f01:用基频；f02:用基频均值填充；f03:用零向量代替基频；f04:不用基频。
-        # f01,f02,f03的模式都把prenet_f0_dim设为1，f04把prenet_f0_dim设为0。
-        # f05s02:用speaker_id等距分配代替基频，speaker_id用0表示。
+        train_mode='train-f04',
+        # f01:用基频，把prenet_f0_dim设为1。
+        # f02:用基频均值填充，把prenet_f0_dim设为1。
+        # f03:用零向量代替基频，把prenet_f0_dim设为1。
+        # f04:不用基频，把prenet_f0_dim设为0。
+        # f05s02:用speaker_id等距分配代替基频，把prenet_f0_dim设为1，speaker_id用0表示。
+        # f06s02:用语音的embed向量代替基频，prenet_f0_dim设置为8，speaker_id用0表示。
 
         # training_files=r"../../data/SV2TTS/mellotron/samples_ssml/train.txt",
         # 文件一行记录一个语音信息，每行的数据结构：数据文件夹名\t语音源文件\t文本\t说话人名称\n，样例如下：
         # 000000	Aibao/005397.mp3	他走近钢琴并开始演奏“祖国从哪里开始”。	0
         # validation_files=r"../../data/SV2TTS/mellotron/samples_ssml/validation.txt",
         # 'filelists/ljs_audiopaths_text_sid_val_filelist.txt',
-        text_cleaners='ssml',  # ['chinese_cleaners'],
+        text_cleaners='aishell3',  # ['chinese_cleaners'],
         p_arpabet=1.0,
         cmudict_path=None,  # "data/cmu_dictionary",
 
@@ -70,11 +73,11 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         decoder_rnn_dim=256 * level,  # 1024,
         prenet_dim=64 * level,  # 256,
         prenet_f0_n_layers=1,
-        prenet_f0_dim=8,  # 1, 如果不启用f0，则设置为0。
+        prenet_f0_dim=0,  # 1, 如果不启用f0，则设置为0。
         prenet_f0_kernel_size=1,
         prenet_rms_dim=0,
         prenet_rms_kernel_size=1,
-        max_decoder_steps=2000,  # 1000,
+        max_decoder_steps=1000,  # 1000,
         gate_threshold=0.5,
         p_attention_dropout=0.1,
         p_decoder_dropout=0.1,
@@ -94,7 +97,7 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         postnet_n_convolutions=5,
 
         # Speaker embedding
-        n_speakers=20,  # 123
+        n_speakers=1000,  # 123
         speaker_embedding_dim=16 * level,  # 32 * level,  # 128,
 
         # Reference encoder

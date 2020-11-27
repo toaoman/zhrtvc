@@ -9,19 +9,24 @@ from utils.argutils import print_args
 from melgan.train import train_melgan
 
 if __name__ == "__main__":
-    print(__file__)
+    try:
+        from setproctitle import setproctitle
+
+        setproctitle('zhrtvc-melgan-train')
+    except ImportError:
+        pass
+
     parser = argparse.ArgumentParser(
         description="训练MelGAN声码器模型。",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-
-    parser.add_argument("--save_path", type=str, default='../models/vocoder/saved_models/melgan/samples',
+    parser.add_argument("-i", "--data_path", type=str, default=r"../data/samples/metadata.csv",
+                        help='metadata path')
+    parser.add_argument("-o", "--save_path", type=str, default='../models/vocoder/saved_models/melgan/samples',
                         help=r"your model save dir")
     parser.add_argument("--load_path", type=str, default=None,
                         help=r"pretrained generator model path")
-    parser.add_argument("--data_path", type=str, default=r"../data/samples/metadata.csv",
-                        help='metadata path')
-    parser.add_argument("--start_step", default=0)
+    parser.add_argument("--start_step", type=int, default=0)
 
     parser.add_argument("--n_mel_channels", type=int, default=80)
     parser.add_argument("--ngf", type=int, default=32)

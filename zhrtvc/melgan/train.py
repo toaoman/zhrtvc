@@ -28,11 +28,17 @@ _device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--save_path", default=r"")
-    parser.add_argument("--load_path", default=r"")
-    parser.add_argument("--data_path", type=str, default=r"")
-    parser.add_argument("--start_step", default=0)
+    parser = argparse.ArgumentParser(
+        description="训练MelGAN声码器模型。",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument("-i", "--data_path", type=str, default=r"../data/samples/metadata.csv",
+                        help='metadata path')
+    parser.add_argument("-o", "--save_path", type=str, default='../models/vocoder/saved_models/melgan/samples',
+                        help=r"your model save dir")
+    parser.add_argument("--load_path", type=str, default=None,
+                        help=r"pretrained generator model path")
+    parser.add_argument("--start_step", type=int, default=0)
 
     parser.add_argument("--n_mel_channels", type=int, default=80)
     parser.add_argument("--ngf", type=int, default=32)
@@ -45,19 +51,20 @@ def parse_args():
     parser.add_argument("--lambda_feat", type=float, default=10)
     parser.add_argument("--cond_disc", action="store_true")
 
-    parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--seq_len", type=int, default=8192)
+    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--seq_len", type=int, default=4800)  # 8192
 
     parser.add_argument("--epochs", type=int, default=3000)
     parser.add_argument("--log_interval", type=int, default=100)
     parser.add_argument("--save_interval", type=int, default=1000)
     parser.add_argument("--n_test_samples", type=int, default=4)
 
-    parser.add_argument("--sample_rate", type=int, default=22050)
-    parser.add_argument("--mode", type=str, default='synthesizer')
-    parser.add_argument("--ratios", type=str, default='8 8 2 2')
+    parser.add_argument("--sample_rate", type=int, default=16000)
+    parser.add_argument("--mode", type=str, default='mellotron')
+    parser.add_argument("--ratios", type=str, default='5 5 4 2')  # '8 8 2 2'
 
     args = parser.parse_args()
+
     return args
 
 
@@ -111,7 +118,6 @@ def audio2mel_synthesizer(src):
     return mels
 
 
-# default_hparams.center = False
 def audio2mel_mellotron(src):
     """
     用aukit模块重现生成mel，和mellotron的频谱适应。
@@ -129,8 +135,6 @@ def audio2mel_mellotron(src):
 
 
 def train_melgan(args):
-    # args = parse_args()
-
     root = Path(args.save_path)
     load_root = Path(args.load_path) if args.load_path else None
     root.mkdir(parents=True, exist_ok=True)
