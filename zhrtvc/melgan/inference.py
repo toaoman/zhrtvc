@@ -8,46 +8,14 @@ from melgan.mel2wav import MelVocoder
 
 from pathlib import Path
 from tqdm import tqdm
+from scipy.io import wavfile
 import argparse
 import librosa
 import torch
 import numpy as np
+import traceback
 
-from aukit.audio_griffinlim import mel_spectrogram, default_hparams
-from aukit.audio_io import Dict2Obj
-import aukit
-
-_melgan_vocoder = None
-
-_sr = 22050
-my_hp = {
-    "n_fft": 1024, "hop_size": 256, "win_size": 1024,
-    "sample_rate": _sr,
-    "fmin": 0, "fmax": _sr // 2,
-    "preemphasize": False,
-    'symmetric_mels': True,
-    'signal_normalization': False,
-    'allow_clipping_in_normalization': False,
-    'ref_level_db': 0,
-    '__file__': __file__
-}
-
-melgan_hparams = {}
-melgan_hparams.update(default_hparams)
-melgan_hparams.update(my_hp)
-melgan_hparams = Dict2Obj(melgan_hparams)
-
-_pad_len = (default_hparams.n_fft - default_hparams.hop_size) // 2
-
-
-def wav2mel(wav, hparams=None):
-    # mel = Audio2Mel().cuda()(src)
-    # return mel
-    hparams = hparams or melgan_hparams
-    wav = np.pad(wav.flatten(), (_pad_len, _pad_len), mode="reflect")
-    mel = mel_spectrogram(wav, hparams)
-    mel = mel / 20
-    return mel
+from melgan.train import audio2mel, audio2mel_mellotron, audio2mel_synthesizer
 
 
 def load_vocoder_melgan(load_path):
@@ -70,11 +38,11 @@ def infer_waveform_melgan(mel, load_path=None):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--load_path", type=Path,
-                        default=Path(r"../vocoder/saved_models/melgan/multi_speaker.pt"))
-    parser.add_argument("--save_path", type=Path,
-                        default=Path(r"E:\lab\melgan\data\melgan\aliexamples_mel_multi_22050_pad"))
-    parser.add_argument("--folder", type=Path,
-                        default=Path(r"E:\lab\melgan\data\aliexamples"))
+                        default=Path("../../models/vocoder/saved_models/melgan/melgan_multi_speaker.pt"))
+    parser.add_argument("-o", "--save_path", type=Path, default=Path("../../data/temp/melgan"))
+    parser.add_argument("-i", "--folder", type=Path, default=Path("../../data/samples/biaobei/biaobei"))
+    parser.add_argument("--mode", type=str, default='synthesizer')
+    parser.add_argument("--n_samples", type=int, default=10)
     args = parser.parse_args()
     return args
 
@@ -84,25 +52,27 @@ def main():
     vocoder = MelVocoder(args.load_path, github=True, model_name=Path(args.load_path).stem, device="cuda")
     args.save_path.mkdir(exist_ok=True, parents=True)
 
-    for i, fname in tqdm(enumerate(args.folder.glob("*.wav"))):
-        wavname = fname.stem
-        wav, sr = librosa.core.load(fname)
-        mel = vocoder(torch.from_numpy(wav)[None])
-        recons = vocoder.inverse(mel).squeeze().cpu().numpy()
-        librosa.output.write_wav(args.save_path / (wavname + ".wav"), recons, sr=22050)
-
-
-def run_compare():
-    args = parse_args()
-    load_vocoder_melgan(args.load_path)
-    for i, fname in tqdm(enumerate(args.folder.glob("*.wav"))):
-        wav, sr = librosa.core.load(fname, sr=16000)
-        mel = wav2mel(wav)
-        out = infer_waveform_melgan(mel=mel)
-        aukit.play_audio(wav, sr=sr)
-        aukit.play_audio(out, sr=sr)
+    if args.mode == 'default':
+        fft = audio2mel
+    elif args.mode == 'synthesizer':
+        fft = audio2mel_synthesizer
+    elif args.mode == 'mellotron':
+        fft = audio2mel_mellotron
+    else:
+        raise KeyError
+    fpath_lst = list(args.folder.glob("**/*"))
+    fpath_choices = np.random.choice(fpath_lst, min(args.n_samples, len(fpath_lst)), replace=False)
+    for i, fname in enumerate(tqdm(fpath_choices)):
+        try:
+            wav, sr = librosa.core.load(str(fname))
+            mel = fft(torch.from_numpy(wav[None]))
+            recons = vocoder.inverse(mel).squeeze().cpu().numpy()
+            wavfile.write(filename=str(args.save_path.joinpath(f'{fname.stem}_raw.wav')), rate=sr, data=wav)
+            wavfile.write(filename=str(args.save_path.joinpath(f'{fname.stem}_syn.wav')), rate=sr, data=recons)
+            # librosa.output.write_wav(args.save_path.joinpath(f'{fname.stem}.wav'), recons, sr=sr)
+        except:
+            traceback.print_exc()
 
 
 if __name__ == "__main__":
-    # main()
-    run_compare()
+    main()

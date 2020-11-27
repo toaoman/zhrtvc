@@ -2,7 +2,9 @@ import os
 import time
 import argparse
 import math
+import multiprocessing as mp
 from numpy import finfo
+from tqdm import tqdm
 
 import torch
 from .distributed import apply_gradient_allreduce
@@ -72,7 +74,7 @@ def prepare_dataloaders(input_directory, hparams):
         train_sampler = None
         shuffle = True
 
-    train_loader = DataLoader(trainset, num_workers=1, shuffle=shuffle,
+    train_loader = DataLoader(trainset, num_workers=hparams.dataloader_num_workers, shuffle=shuffle,
                               sampler=train_sampler,
                               batch_size=hparams.batch_size, pin_memory=False,
                               drop_last=True, collate_fn=collate_fn)
@@ -283,7 +285,7 @@ def train(input_directory, output_directory, log_directory, checkpoint_path, war
         print("Epoch: {}".format(epoch))
         if train_sampler is not None:
             train_sampler.set_epoch(epoch)
-        for i, batch in enumerate(train_loader):
+        for i, batch in enumerate(tqdm(train_loader, desc=f"Epoch-{epoch}", ncols=100)):
             start = time.perf_counter()
             if iteration > 0 and iteration % hparams.learning_rate_anneal == 0:
                 learning_rate = max(
@@ -316,15 +318,14 @@ def train(input_directory, output_directory, log_directory, checkpoint_path, war
                     model.parameters(), hparams.grad_clip_thresh)
 
             optimizer.step()
-
+            duration = time.perf_counter() - start
             if not is_overflow and rank == 0:
-                duration = time.perf_counter() - start
-                print("Train loss {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
-                    iteration, reduced_loss, grad_norm, duration))
                 logger.log_training(
                     reduced_loss, grad_norm, learning_rate, duration, iteration)
 
             if not is_overflow and (iteration % hparams.iters_per_checkpoint == 0):
+                print("Train loss {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
+                    iteration, reduced_loss, grad_norm, duration))
                 validate(model, criterion, valset, iteration,
                          hparams.batch_size, n_gpus, collate_fn, logger,
                          hparams.distributed_run, rank, outdir=Path(output_directory), hparams=hparams)

@@ -39,6 +39,7 @@ def parse_args():
     parser.add_argument("--load_path", type=str, default=None,
                         help=r"pretrained generator model path")
     parser.add_argument("--start_step", type=int, default=0)
+    parser.add_argument("--dataloader_num_workers", type=int, default=10)
 
     parser.add_argument("--n_mel_channels", type=int, default=80)
     parser.add_argument("--ngf", type=int, default=32)
@@ -74,7 +75,8 @@ def audio2mel(src):
     :param src:
     :return:
     """
-    mel = Audio2Mel().to(_device)(src)
+    src = src.unsqueeze(1)
+    mel = Audio2Mel()(src)
     return mel
 
 
@@ -195,7 +197,7 @@ def train_melgan(args):
         augment=False,
     )
 
-    train_loader = DataLoader(train_set, batch_size=args.batch_size, num_workers=4)
+    train_loader = DataLoader(train_set, batch_size=args.batch_size, num_workers=args.dataloader_num_workers)
     test_loader = DataLoader(test_set, batch_size=1)
 
     ##########################
@@ -231,7 +233,7 @@ def train_melgan(args):
     steps = step_begin
     for epoch in range(1, args.epochs + 1):
         print("\nEpoch {} beginning. Current step: {}".format(epoch, steps))
-        for iterno, x_t in enumerate(tqdm(train_loader, desc="iter", ncols=100)):
+        for iterno, x_t in enumerate(tqdm(train_loader, desc=f"Epoch-{epoch}", ncols=100)):
             # torch.Size([4, 1, 8192]) torch.Size([4, 80, 32])
             # 8192 = 32 x 256
             x_t = x_t.to(_device)

@@ -10,8 +10,9 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         ################################
         # Experiment Parameters        #
         ################################
+        dataloader_num_workers=10,
         epochs=1000000,
-        iters_per_checkpoint=10000,  # 500,
+        iters_per_checkpoint=1000,  # 500,
         seed=1234,
         dynamic_loss_scaling=True,
         fp16_run=False,

@@ -27,6 +27,7 @@ if __name__ == "__main__":
     parser.add_argument("--load_path", type=str, default=None,
                         help=r"pretrained generator model path")
     parser.add_argument("--start_step", type=int, default=0)
+    parser.add_argument("--dataloader_num_workers", type=int, default=10)
 
     parser.add_argument("--n_mel_channels", type=int, default=80)
     parser.add_argument("--ngf", type=int, default=32)
