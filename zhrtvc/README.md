@@ -3,7 +3,7 @@
 ## 使用指引
 主要做synthesizer的部分，encoder和vocoder都用publish的模型。
 
-### synthesizer
+### 语音合成器synthesizer
 
 1. 处理语料，生成用于训练synthesizer的数据。
 
@@ -197,7 +197,7 @@ mel文件路径和embed文件路径可以是相对路径（相对于train.txt所
 如果多个数据一起用，可以用绝对路径表示，汇总到一个train.txt文件，便于训练。
 
 
-### mellotron
+### 语音合成器mellotron
 1. 训练mellotron模型。
 
 ```markdown
@@ -251,7 +251,7 @@ optional arguments:
 ```
 
 
-### mellotron
+### 声码器melgan
 1. 训练melgan模型。
 ```markdown
 usage: melgan_train.py [-h] [-i DATA_PATH] [-o SAVE_PATH]
