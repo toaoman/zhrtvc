@@ -115,19 +115,19 @@ aliaudio_fpaths = [str(w) for w in sorted(Path(r'../data/samples/aliaudio').glob
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--checkpoint_path', type=str,
-                        default=r"../models/mellotron/aliaudio-f06s02/checkpoint-030000.pt",
+                        default=r"../models/mellotron/samples/checkpoint-000000.pt",
                         help='模型路径。')
     parser.add_argument('-s', '--speakers_path', type=str,
-                        default=r"../models/mellotron/aliaudio-f06s02/metadata/speakers.json",
+                        default=r"../models/mellotron/samples/metadata/speakers.json",
                         help='发音人映射表路径。')
-    parser.add_argument("-o", "--out_dir", type=Path, default="../models/mellotron/aliaudio-f06s02/test",
+    parser.add_argument("-o", "--out_dir", type=Path, default=r"../models/mellotron/samples/test",
                         help='保存合成的数据路径。')
-    parser.add_argument("-p", "--play", type=int, default=1,
+    parser.add_argument("-p", "--play", type=int, default=0,
                         help='是否合成语音后自动播放语音。')
     parser.add_argument('--n_gpus', type=int, default=1,
                         required=False, help='number of gpus')
     parser.add_argument('--hparams_path', type=str,
-                        default=r"../models/mellotron/aliaudio-f06s02/metadata/hparams.json",
+                        default=r"../models/mellotron/samples/metadata/hparams.json",
                         required=False, help='comma separated name=value pairs')
     parser.add_argument("-e", "--encoder_model_fpath", type=Path,
                         default=r"../models/encoder/saved_models/ge2e_pretrained.pt",
@@ -154,11 +154,16 @@ if __name__ == "__main__":
                gpu_properties.minor,
                gpu_properties.total_memory / 1e9))
 
+    msyner = MellotronSynthesizer(model_path=args.checkpoint_path, speakers_path=args.speakers_path,
+                                  hparams_path=args.hparams_path)
+
+    spec = msyner.synthesize(text='你好，欢迎使用语言合成服务。', speaker='speaker')
+
     ## Run a test
-    spec, align = synthesize_one('你好，欢迎使用语言合成服务。', aliaudio_fpaths[0], with_alignment=True,
-                                 hparams=_hparams, encoder_fpath=args.encoder_model_fpath)
+    # spec, align = synthesize_one('你好，欢迎使用语言合成服务。', aliaudio_fpaths[0], with_alignment=True,
+    #                              hparams=_hparams, encoder_fpath=args.encoder_model_fpath)
     print("Spectrogram shape: {}".format(spec.shape))
-    print("Alignment shape: {}".format(align.shape))
+    # print("Alignment shape: {}".format(align.shape))
     wav = griffinlim_vocoder(spec)
     print("Waveform shape: {}".format(wav.shape))
 
@@ -176,7 +181,7 @@ if __name__ == "__main__":
             # Get the reference audio filepath
             speaker = input("Speaker:\n")
             if not speaker.strip():
-                speaker = np.random.choice(example_fpaths)
+                speaker = np.random.choice(speaker_names)
             print('Speaker: {}'.format(speaker))
 
             ## Generating the spectrogram
@@ -187,10 +192,11 @@ if __name__ == "__main__":
             # The synthesizer works in batch, so you need to put your data in a list or numpy array
 
             print("Creating the spectrogram ...")
-            spec, align = synthesize_one(text, speaker=speaker, with_alignment=True,
-                                         hparams=_hparams, encoder_fpath=args.encoder_model_fpath)
+            spec = msyner.synthesize(text=text, speaker=speaker)
+            # spec, align = synthesize_one(text, speaker=speaker, with_alignment=True,
+            #                              hparams=_hparams, encoder_fpath=args.encoder_model_fpath)
             print("Spectrogram shape: {}".format(spec.shape))
-            print("Alignment shape: {}".format(align.shape))
+            # print("Alignment shape: {}".format(align.shape))
             ## Generating the waveform
             print("Synthesizing the waveform ...")
             wav = griffinlim_vocoder(spec)

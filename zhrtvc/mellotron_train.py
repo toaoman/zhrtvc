@@ -35,7 +35,7 @@ if __name__ == '__main__':
     parser.add_argument('--group_name', type=str, default='group_name',
                         required=False, help='Distributed group name')
     parser.add_argument('--hparams', type=str,
-                        default='{"batch_size":4,"iters_per_checkpoint":10,"learning_rate":0.001}',
+                        default='{"batch_size":4,"iters_per_checkpoint":10,"learning_rate":0.001,"dataloader_num_workers":1}',
                         required=False, help='comma separated name=value pairs')
 
     args = parser.parse_args()

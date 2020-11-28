@@ -25,14 +25,14 @@ _melgan_vocoder = None
 def load_vocoder_melgan(load_path):
     global _melgan_vocoder
     if _melgan_vocoder is None:
-        _melgan_vocoder = MelVocoder(load_path, github=True, model_name=Path(load_path).stem)
+        _melgan_vocoder = MelVocoder(load_path, github=True)
     return _melgan_vocoder
 
 
 def infer_waveform_melgan(mel, load_path=None):
     global _melgan_vocoder
     if _melgan_vocoder is None:
-        _melgan_vocoder = MelVocoder(load_path, github=True, model_name=Path(load_path).stem)
+        _melgan_vocoder = MelVocoder(load_path, github=True)
 
     mel = torch.from_numpy(mel[np.newaxis].astype(np.float32))
     wav = _melgan_vocoder.inverse(mel).squeeze().cpu().numpy()

@@ -4,6 +4,7 @@ from pathlib import Path
 import yaml
 import torch
 import os
+import json
 import numpy as np
 
 from aukit.audio_griffinlim import mel_spectrogram, default_hparams
@@ -37,10 +38,14 @@ def load_state_dict(pt_path, yml_path, device=get_default_device()):
         mel2wav_path (str or Path): path to the root folder of dumped text2mel
         device (str or torch.device): device to load the model
     """
-    with open(yml_path, "r") as f:
-        args = yaml.load(f, Loader=yaml.FullLoader)
-    ratios = [int(w) for w in args.ratios.split()]
-    netG = Generator(args.n_mel_channels, args.ngf, args.n_residual_layers, ratios=ratios).to(device)
+    if str(yml_path).endswith('.yml'):
+        with open(yml_path, "r") as f:
+            args = yaml.load(f, Loader=yaml.FullLoader)
+    else:
+        args = json.load(open(yml_path, encoding='utf8'))
+
+    ratios = [int(w) for w in args['ratios'].split()]
+    netG = Generator(args['n_mel_channels'], args['ngf'], args['n_residual_layers'], ratios=ratios).to(device)
     netG.load_state_dict(torch.load(pt_path, map_location=device))
     return netG
 
@@ -61,7 +66,7 @@ class MelVocoder:
             path,
             device=get_default_device(),
             github=False,
-            model_name="multi_speaker",
+            args_path="",
             mode='default',
     ):
         if mode == 'default':
@@ -80,7 +85,11 @@ class MelVocoder:
             )
             self.mel2wav_model = netG
         else:
-            self.mel2wav_model = load_model_net(path, device)
+            if args_path:
+                self.mel2wav_model = load_state_dict(path, args_path, device)
+            else:
+                self.mel2wav_model = load_model_net(path, device)
+
         self.device = device
 
     def __call__(self, audio):

@@ -35,6 +35,8 @@ def parse_args():
     parser.add_argument("-m", "--load_path", type=Path,
                         default=Path("../models/vocoder/saved_models/melgan/melgan_multi_speaker.pt"),
                         help='模型路径')
+    parser.add_argument("--args_path", type=str, default='',
+                        help='设置模型参数的文件')
     parser.add_argument("--mode", type=str, default='default',
                         help='模型模式')
     parser.add_argument("--n_samples", type=int, default=10,
@@ -45,11 +47,11 @@ def parse_args():
 
 def main():
     args = parse_args()
-    vocoder = MelVocoder(args.load_path, github=args.mode == 'default', model_name=Path(args.load_path).stem,
+    vocoder = MelVocoder(args.load_path, github=args.mode == 'default', args_path=args.args_path,
                          device=_device, mode=args.mode)
     args.save_path.mkdir(exist_ok=True, parents=True)
 
-    fpath_lst = list(args.folder.glob("**/*"))
+    fpath_lst = [w for w in args.folder.glob("**/*") if w.is_file()]
     fpath_choices = np.random.choice(fpath_lst, min(args.n_samples, len(fpath_lst)), replace=False)
     for i, fname in enumerate(tqdm(fpath_choices, 'inference', ncols=100)):
         try:

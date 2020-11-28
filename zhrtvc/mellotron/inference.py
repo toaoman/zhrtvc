@@ -21,6 +21,34 @@ from .data_utils import transform_data_train
 
 from .data_utils import transform_mel, transform_text, transform_f0, transform_embed, transform_speaker
 
+import json
+
+
+
+class MellotronSynthesizer():
+    def __init__(self, model_path, speakers_path, hparams_path):
+        args_hparams = open(hparams_path, encoding='utf8').read()
+        self.hparams = create_hparams(args_hparams)
+
+        self.model = load_model(self.hparams).to(_device).eval()
+        self.model.load_state_dict(torch.load(model_path, map_location=_device)['state_dict'])
+
+        self.speakers = json.load(open(speakers_path, encoding='utf8'))
+
+    def synthesize(self, text, speaker):
+        text_encoded = torch.LongTensor(transform_text(text, text_cleaners='hanzi'))[None, :].to(_device)
+        speaker_id = torch.LongTensor(transform_speaker(speaker, speaker_ids=self.speakers)).to(_device)
+
+        style_input = 0
+        pitch_contour = None
+        with torch.no_grad():
+            mel_outputs, mel_outputs_postnet, gate_outputs, alignments = _mellotron.inference(
+                (text_encoded, style_input, speaker_id, pitch_contour))
+        out_mel = mel_outputs_postnet.data.cpu().numpy()[0]
+        return out_mel
+
+############################################ 以下计划弃用 ###################################################
+
 _mellotron = None
 _device = 'cpu'
 
