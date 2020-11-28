@@ -15,13 +15,13 @@ import numpy as np
 import torch
 import torch.utils.data
 import librosa
-
-import layers
 import traceback
 from pathlib import Path
+
+from mellotron import layers
 from mellotron.utils import load_wav_to_torch, load_filepaths_and_text, load_filepaths_and_text_train
-from text import text_to_sequence, cmudict
-from yin import compute_yin
+from mellotron.text import text_to_sequence, cmudict
+from mellotron.yin import compute_yin
 
 from mellotron.utils import melspectrogram_torch, linearspectrogram_torch
 from mellotron.utils import linearspectrogram

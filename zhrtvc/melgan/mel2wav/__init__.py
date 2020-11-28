@@ -1,1 +1,1 @@
-from melgan.mel2wav.interface import load_model, MelVocoder
+from .interface import load_model, MelVocoder

@@ -5,9 +5,9 @@ import torch
 from torch.autograd import Variable
 from torch import nn
 from torch.nn import functional as F
-from layers import ConvNorm, LinearNorm
+from mellotron.layers import ConvNorm, LinearNorm
 from mellotron.utils import to_gpu, get_mask_from_lengths
-from modules import GST
+from mellotron.modules import GST
 
 drop_rate = 0.5
 

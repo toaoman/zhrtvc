@@ -4,9 +4,9 @@
 # date: 2020/2/21
 """
 """
-from melgan.mel2wav.dataset import AudioDataset
-from melgan.mel2wav.modules import Generator, Discriminator, Audio2Mel
-from melgan.mel2wav.utils import save_sample
+from .mel2wav.dataset import AudioDataset
+from .mel2wav.modules import Generator, Discriminator, Audio2Mel
+from .mel2wav.utils import save_sample
 
 import torch
 import torch.nn.functional as F
@@ -21,10 +21,10 @@ import argparse
 from pathlib import Path
 
 from tqdm import tqdm
-from aukit.audio_griffinlim import mel_spectrogram, default_hparams
-from aukit import Dict2Obj
 
-_device = 'cuda' if torch.cuda.is_available() else 'cpu'
+from .mel2wav.interface import audio2mel, audio2mel_synthesizer, audio2mel_mellotron, get_default_device
+
+_device = get_default_device()
 
 
 def parse_args():
@@ -69,73 +69,6 @@ def parse_args():
     return args
 
 
-def audio2mel(src):
-    """
-    训练中使用。
-    :param src:
-    :return:
-    """
-    src = src.unsqueeze(1)
-    mel = Audio2Mel()(src)
-    return mel
-
-
-_sr = 22050
-my_hp = {
-    "n_fft": 1024,  # 800
-    "hop_size": 256,  # 200
-    "win_size": 1024,  # 800
-    "sample_rate": _sr,  # 16000
-    "fmin": 0,  # 55
-    "fmax": _sr // 2,  # 7600
-    "preemphasize": False,  # True
-    'symmetric_mels': True,  # True
-    'signal_normalization': False,  # True
-    'allow_clipping_in_normalization': False,  # True
-    'ref_level_db': 0,  # 20
-    'center': False,  # True
-    '__file__': __file__
-}
-
-synthesizer_hparams = {k: v for k, v in default_hparams.items()}
-synthesizer_hparams = {**synthesizer_hparams, **my_hp}
-synthesizer_hparams = Dict2Obj(synthesizer_hparams)
-
-
-def audio2mel_synthesizer(src):
-    """
-    用aukit模块重现生成mel，和synthesizer的频谱适应。
-    :param src:
-    :return:
-    """
-    _pad_len = (synthesizer_hparams.n_fft - synthesizer_hparams.hop_size) // 2
-    wavs = src.cpu().numpy()
-    mels = []
-    for wav in wavs:
-        wav = np.pad(wav.flatten(), (_pad_len, _pad_len), mode="reflect")
-        mel = mel_spectrogram(wav, synthesizer_hparams)
-        mel = mel / 20
-        mels.append(mel)
-    mels = torch.from_numpy(np.array(mels).astype(np.float32))
-    return mels
-
-
-def audio2mel_mellotron(src):
-    """
-    用aukit模块重现生成mel，和mellotron的频谱适应。
-    :param src:
-    :return:
-    """
-    wavs = src.cpu().numpy()
-    mels = []
-    for wav in wavs:
-        wav = wav.flatten()[:-1]  # 避免生成多一个空帧频谱
-        mel = mel_spectrogram(wav, default_hparams)
-        mels.append(mel)
-    mels = torch.from_numpy(np.array(mels).astype(np.float32))
-    return mels
-
-
 def train_melgan(args):
     root = Path(args.save_path)
     load_root = Path(args.load_path) if args.load_path else None
@@ -144,10 +77,11 @@ def train_melgan(args):
     ####################################
     # Dump arguments and create logger #
     ####################################
-    # with open(root / "args.yml", "w") as f:
-    #     yaml.dump(args, f)
+    with open(root / "args.yml", "w") as f:
+        yaml.dump(args, f)
     with open(root / "args.json", "w", encoding="utf8") as f:
         json.dump(args.__dict__, f, indent=4, ensure_ascii=False)
+
     eventdir = root / "events"
     eventdir.mkdir(exist_ok=True)
     writer = SummaryWriter(str(eventdir))
@@ -317,10 +251,11 @@ def train_melgan(args):
                 torch.save(netD.state_dict(), ptdir / "step{}_netD.pt".format(steps))
                 torch.save(optD.state_dict(), ptdir / "step{}_optD.pt".format(steps))
 
-                if np.asarray(costs).mean(0)[-1] < best_mel_reconst:
+                if (np.asarray(costs).mean(0)[-1] < best_mel_reconst) or (steps % (args.save_interval * 10) == 0):
                     best_mel_reconst = np.asarray(costs).mean(0)[-1]
-                    torch.save(netD.state_dict(), ptdir / "best_step{}_netD.pt".format(steps))
-                    torch.save(netG.state_dict(), ptdir / "best_step{}_netG.pt".format(steps))
+                    torch.save(netD, ptdir / "best_step{}_netD.pt".format(steps))
+                    torch.save(netG, ptdir / "best_step{}_netG.pt".format(steps))
+
                 # print("\nTook %5.4fs to generate samples" % (time.time() - st))
                 # print("-" * 100)
 

@@ -3,7 +3,7 @@
 ## 使用指引
 主要做synthesizer的部分，encoder和vocoder都用publish的模型。
 
-### 训练
+### synthesizer
 
 1. 处理语料，生成用于训练synthesizer的数据。
 
@@ -197,7 +197,8 @@ mel文件路径和embed文件路径可以是相对路径（相对于train.txt所
 如果多个数据一起用，可以用绝对路径表示，汇总到一个train.txt文件，便于训练。
 
 
-3. 训练mellotron模型。
+### mellotron
+1. 训练mellotron模型。
 
 ```markdown
 usage: mellotron_train.py [-h] [-i INPUT_DIRECTORY] [-o OUTPUT_DIRECTORY]
@@ -224,10 +225,38 @@ optional arguments:
 
 ```
 
-4. 训练melgan模型。
+2. 应用mellotron模型
+
 ```markdown
-usage: melgan_train.py [-h] [--save_path SAVE_PATH] [--load_path LOAD_PATH]
-                       [--data_path DATA_PATH] [--start_step START_STEP]
+usage: mellotron_inference.py [-h] [-m CHECKPOINT_PATH] [-s SPEAKERS_PATH]
+                              [-o OUT_DIR] [-p PLAY] [--n_gpus N_GPUS]
+                              [--hparams_path HPARAMS_PATH]
+                              [-e ENCODER_MODEL_FPATH]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -m CHECKPOINT_PATH, --checkpoint_path CHECKPOINT_PATH
+                        模型路径。
+  -s SPEAKERS_PATH, --speakers_path SPEAKERS_PATH
+                        发音人映射表路径。
+  -o OUT_DIR, --out_dir OUT_DIR
+                        保存合成的数据路径。
+  -p PLAY, --play PLAY  是否合成语音后自动播放语音。
+  --n_gpus N_GPUS       number of gpus
+  --hparams_path HPARAMS_PATH
+                        comma separated name=value pairs
+  -e ENCODER_MODEL_FPATH, --encoder_model_fpath ENCODER_MODEL_FPATH
+                        Path your trained encoder model.
+
+```
+
+
+### mellotron
+1. 训练melgan模型。
+```markdown
+usage: melgan_train.py [-h] [-i DATA_PATH] [-o SAVE_PATH]
+                       [--load_path LOAD_PATH] [--start_step START_STEP]
+                       [--dataloader_num_workers DATALOADER_NUM_WORKERS]
                        [--n_mel_channels N_MEL_CHANNELS] [--ngf NGF]
                        [--n_residual_layers N_RESIDUAL_LAYERS] [--ndf NDF]
                        [--num_D NUM_D] [--n_layers_D N_LAYERS_D]
@@ -244,14 +273,15 @@ usage: melgan_train.py [-h] [--save_path SAVE_PATH] [--load_path LOAD_PATH]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --save_path SAVE_PATH
+  -i DATA_PATH, --data_path DATA_PATH
+                        metadata path (default: ../data/samples/metadata.csv)
+  -o SAVE_PATH, --save_path SAVE_PATH
                         your model save dir (default:
-                        ../models/vocoder/saved_models/melgan/samples)
+                        ../models/melgan/samples)
   --load_path LOAD_PATH
                         pretrained generator model path (default: None)
-  --data_path DATA_PATH
-                        metadata path (default: ../data/samples/metadata.csv)
   --start_step START_STEP
+  --dataloader_num_workers DATALOADER_NUM_WORKERS
   --n_mel_channels N_MEL_CHANNELS
   --ngf NGF
   --n_residual_layers N_RESIDUAL_LAYERS
@@ -274,7 +304,35 @@ optional arguments:
 ```
 
 
+2. 应用melgan模型
+
+```markdown
+usage: melgan_inference.py [-h] [-i FOLDER] [-o SAVE_PATH] [-m LOAD_PATH]
+                           [--mode MODE] [--n_samples N_SAMPLES]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i FOLDER, --folder FOLDER
+                        输入音频文件的目录路径
+  -o SAVE_PATH, --save_path SAVE_PATH
+                        输出生成语音的目录路径
+  -m LOAD_PATH, --load_path LOAD_PATH
+                        模型路径
+  --mode MODE           模型模式
+  --n_samples N_SAMPLES
+                        需要实验多少个音频
+
+```
+
 ## 版本记录
+
+### v1.2.1
+- 增加mellotron的推理inference模块。
+- 增加melgan的推理inference模块。
+- 优化模型保存方式。
+- 修正已知bugs。
+- 让训练变得优雅顺畅。
+
 
 ### v1.2.0
 - 整理mellotron模型，修正bugs，简化训练方法。

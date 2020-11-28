@@ -22,7 +22,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("-i", "--data_path", type=str, default=r"../data/samples/metadata.csv",
                         help='metadata path')
-    parser.add_argument("-o", "--save_path", type=str, default='../models/vocoder/saved_models/melgan/samples',
+    parser.add_argument("-o", "--save_path", type=str, default='../models/melgan/samples',
                         help=r"your model save dir")
     parser.add_argument("--load_path", type=str, default=None,
                         help=r"pretrained generator model path")
