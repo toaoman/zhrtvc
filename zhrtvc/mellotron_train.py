@@ -4,19 +4,9 @@ import os
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mellotron'))
 
 import argparse
-import torch
 
-from mellotron.hparams import create_hparams
-from mellotron.train import train, json_dump
 
-if __name__ == '__main__':
-    try:
-        from setproctitle import setproctitle
-
-        setproctitle('zhrtvc-mellotron-train')
-    except ImportError:
-        pass
-
+def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input_directory', type=str, default=r'../data/samples/metadata.csv',
                         help='directory to save checkpoints')
@@ -37,8 +27,33 @@ if __name__ == '__main__':
     parser.add_argument('--hparams', type=str,
                         default='{"batch_size":4,"iters_per_checkpoint":10,"learning_rate":0.001,"dataloader_num_workers":1}',
                         required=False, help='comma separated name=value pairs')
+    parser.add_argument("--cuda", type=str, default='-1',
+                        help='设置CUDA_VISIBLE_DEVICES')
 
     args = parser.parse_args()
+
+    return args
+
+
+args = parse_args()
+
+import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
+
+import torch
+
+from mellotron.hparams import create_hparams
+from mellotron.train import train, json_dump
+
+if __name__ == '__main__':
+    try:
+        from setproctitle import setproctitle
+
+        setproctitle('zhrtvc-mellotron-train')
+    except ImportError:
+        pass
+
     hparams = create_hparams(args.hparams)
 
     torch.backends.cudnn.enabled = hparams.cudnn_enabled

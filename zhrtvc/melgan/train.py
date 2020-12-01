@@ -18,6 +18,8 @@ import json
 import numpy as np
 import time
 import argparse
+import matplotlib.pyplot as plt
+
 from pathlib import Path
 
 from tqdm import tqdm
@@ -131,8 +133,9 @@ def train_melgan(args):
         augment=False,
     )
 
-    train_loader = DataLoader(train_set, batch_size=args.batch_size, num_workers=args.dataloader_num_workers)
-    test_loader = DataLoader(test_set, batch_size=1)
+    train_loader = DataLoader(train_set, batch_size=args.batch_size, num_workers=args.dataloader_num_workers,
+                              shuffle=True)
+    test_loader = DataLoader(test_set, batch_size=1, shuffle=True)
 
     ##########################
     # Dumping original audio #
@@ -151,7 +154,11 @@ def train_melgan(args):
         oridir.mkdir(exist_ok=True)
         save_sample(oridir / ("original_{}_{}.wav".format("test", i)), args.sample_rate, audio)
         writer.add_audio("original/{}/sample_{}.wav".format("test", i), audio, 0, sample_rate=args.sample_rate)
-
+        mel_outputs = fft(x_t)
+        writer.add_image(
+            "original/{}/sample_{}.npy".format("test", i),
+            plot_spectrogram_to_numpy(mel_outputs[0].data.cpu().numpy()),
+            0, dataformats='HWC')
         if i == args.n_test_samples - 1:
             break
 
@@ -230,9 +237,9 @@ def train_melgan(args):
             if steps % args.save_interval == 0 or steps in look_steps:
                 st = time.time()
                 with torch.no_grad():
-                    for i, (voc, _) in enumerate(zip(test_voc, test_audio)):
-                        pred_audio = netG(voc)
-                        pred_audio = pred_audio.squeeze().cpu()
+                    for i, (voc, true_audio) in enumerate(zip(test_voc, test_audio)):
+                        pred_audio_ = netG(voc)
+                        pred_audio = pred_audio_.squeeze().cpu()
                         gendir = root / "generated"
                         gendir.mkdir(exist_ok=True)
                         save_sample(gendir / ("generated_step{}_{}.wav".format(steps, i)), args.sample_rate, pred_audio)
@@ -242,6 +249,12 @@ def train_melgan(args):
                             epoch,
                             sample_rate=args.sample_rate,
                         )
+                        # 查看频谱，直观了解生成语音的情况
+                        mel_outputs = fft(pred_audio_.detach())
+                        writer.add_image(
+                            "generated/step{}/sample_{}.npy".format(steps, i),
+                            plot_spectrogram_to_numpy(mel_outputs[0].data.cpu().numpy()),
+                            epoch, dataformats='HWC')
 
                 ptdir = root / "models"
                 ptdir.mkdir(exist_ok=True)
@@ -271,6 +284,28 @@ def train_melgan(args):
                 )
                 costs = []
                 start = time.time()
+
+
+def plot_spectrogram_to_numpy(spectrogram):
+    fig, ax = plt.subplots(figsize=(12, 3))
+    im = ax.imshow(spectrogram, aspect="auto", origin="lower",
+                   interpolation='none')
+    plt.colorbar(im, ax=ax)
+    plt.xlabel("Frames")
+    plt.ylabel("Channels")
+    plt.tight_layout()
+
+    fig.canvas.draw()
+    data = save_figure_to_numpy(fig)
+    plt.close()
+    return data
+
+
+def save_figure_to_numpy(fig):
+    # save it to a numpy array.
+    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    return data
 
 
 if __name__ == "__main__":

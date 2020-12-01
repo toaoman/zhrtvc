@@ -42,10 +42,14 @@ class MellotronSynthesizer():
         style_input = 0
         pitch_contour = None
         with torch.no_grad():
-            mel_outputs, mel_outputs_postnet, gate_outputs, alignments = _mellotron.inference(
+            mel_outputs, mel_outputs_postnet, gate_outputs, alignments = self.model.inference(
                 (text_encoded, style_input, speaker_id, pitch_contour))
         out_mel = mel_outputs_postnet.data.cpu().numpy()[0]
         return out_mel
+
+
+def save_model(model: MellotronSynthesizer, outpath=''):
+    torch.save(model.model, outpath)
 
 ############################################ 以下计划弃用 ###################################################
 
@@ -92,7 +96,3 @@ def synthesize_one(text, speaker='Aiyue', model_path='', with_alignment=False, h
 def griffinlim_vocoder(spec):
     wav = inv_linear_spectrogram(spec)
     return wav
-
-
-def save_model(model, outpath):
-    torch.save(model, outpath)
