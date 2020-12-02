@@ -4,26 +4,24 @@
 # date: 2020/2/21
 """
 """
-from .mel2wav.dataset import AudioDataset
-from .mel2wav.modules import Generator, Discriminator, Audio2Mel
-from .mel2wav.utils import save_sample
+import yaml
+import json
+import time
+import argparse
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+from tqdm import tqdm
 
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-import yaml
-import json
-import numpy as np
-import time
-import argparse
-import matplotlib.pyplot as plt
-
-from pathlib import Path
-
-from tqdm import tqdm
-
+from .mel2wav.dataset import AudioDataset
+from .mel2wav.modules import Generator, Discriminator, Audio2Mel
+from .mel2wav.utils import save_sample
 from .mel2wav.interface import audio2mel, audio2mel_synthesizer, audio2mel_mellotron, get_default_device
 
 _device = get_default_device()
@@ -36,12 +34,12 @@ def parse_args():
     )
     parser.add_argument("-i", "--data_path", type=str, default=r"../data/samples/metadata.csv",
                         help='metadata path')
-    parser.add_argument("-o", "--save_path", type=str, default='../models/vocoder/saved_models/melgan/samples',
+    parser.add_argument("-o", "--save_path", type=str, default='../models/melgan/samples',
                         help=r"your model save dir")
     parser.add_argument("--load_path", type=str, default=None,
                         help=r"pretrained generator model path")
     parser.add_argument("--start_step", type=int, default=0)
-    parser.add_argument("--dataloader_num_workers", type=int, default=10)
+    parser.add_argument("--dataloader_num_workers", type=int, default=1)
 
     parser.add_argument("--n_mel_channels", type=int, default=80)
     parser.add_argument("--ngf", type=int, default=32)
@@ -66,6 +64,8 @@ def parse_args():
     parser.add_argument("--mode", type=str, default='mellotron')
     parser.add_argument("--ratios", type=str, default='5 5 4 2')  # '8 8 2 2'
 
+    parser.add_argument("--cuda", type=str, default='0',
+                        help='设置CUDA_VISIBLE_DEVICES')
     args = parser.parse_args()
 
     return args
@@ -76,12 +76,15 @@ def train_melgan(args):
     load_root = Path(args.load_path) if args.load_path else None
     root.mkdir(parents=True, exist_ok=True)
 
+    metadata_dir = root.joinpath('metadata')
+    metadata_dir.mkdir(exist_ok=True)
+
     ####################################
     # Dump arguments and create logger #
     ####################################
-    with open(root / "args.yml", "w") as f:
-        yaml.dump(args, f)
-    with open(root / "args.json", "w", encoding="utf8") as f:
+    with open(metadata_dir / "args.yml", "w") as f:
+        yaml.dump(args.__dict__, f)
+    with open(metadata_dir / "args.json", "w", encoding="utf8") as f:
         json.dump(args.__dict__, f, indent=4, ensure_ascii=False)
 
     eventdir = root / "events"
@@ -132,6 +135,11 @@ def train_melgan(args):
         sampling_rate=args.sample_rate,
         augment=False,
     )
+
+    # 保存训练数据
+    with open(metadata_dir.joinpath('train.yml'), 'wt', encoding='utf8') as fout:
+        yaml.dump([str(w.absolute()) for w in train_set.audio_files], fout,
+                  default_flow_style=False, encoding='utf-8', allow_unicode=True)
 
     train_loader = DataLoader(train_set, batch_size=args.batch_size, num_workers=args.dataloader_num_workers,
                               shuffle=True)

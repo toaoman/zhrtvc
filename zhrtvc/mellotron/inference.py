@@ -10,19 +10,16 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(Path(__name__).stem)
 
+import json
 import torch
 import numpy as np
+
 from .model import Tacotron2, load_model
 from .text import cmudict, text_to_sequence
 from .utils import inv_linear_spectrogram, load_wav
-
 from .hparams import create_hparams
 from .data_utils import transform_data_train
-
 from .data_utils import transform_mel, transform_text, transform_f0, transform_embed, transform_speaker
-
-import json
-
 
 
 class MellotronSynthesizer():
@@ -50,6 +47,7 @@ class MellotronSynthesizer():
 
 def save_model(model: MellotronSynthesizer, outpath=''):
     torch.save(model.model, outpath)
+
 
 ############################################ 以下计划弃用 ###################################################
 

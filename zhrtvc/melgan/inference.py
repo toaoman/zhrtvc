@@ -4,18 +4,16 @@
 # date: 2020/2/20
 """
 """
-from .mel2wav.interface import MelVocoder
-
 from pathlib import Path
+import traceback
+import time
+import argparse
+
 from tqdm import tqdm
 from scipy.io import wavfile
-import argparse
 import librosa
 import torch
 import numpy as np
-import traceback
-import time
-import torch
 
 from .mel2wav.interface import MelVocoder, get_default_device
 

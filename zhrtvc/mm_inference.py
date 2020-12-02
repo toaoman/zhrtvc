@@ -47,14 +47,14 @@ import json
 import traceback
 import torch
 import numpy as np
-
+import matplotlib.pyplot as plt
 import aukit
 from mellotron.data_utils import transform_text, transform_speaker
 
 _device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-def mellotron_inference(model, text, speaker):
+def mellotron_inference(model, text, speaker, with_alignment=False):
     text_encoded = torch.LongTensor(transform_text(text, text_cleaners='hanzi'))[None, :].to(_device)
     speaker_id = torch.LongTensor(transform_speaker(speaker, speaker_ids={})).to(_device)
 
@@ -64,7 +64,8 @@ def mellotron_inference(model, text, speaker):
         mel_outputs, mel_outputs_postnet, gate_outputs, alignments = model.inference(
             (text_encoded, style_input, speaker_id, pitch_contour))
     out_mel = mel_outputs_postnet.data.cpu().numpy()[0]
-    return out_mel
+    out_align = alignments.data.cpu().numpy()[0]
+    return (out_mel, out_align) if with_alignment else out_mel
 
 
 def melgan_inference(model, spec):
@@ -169,7 +170,6 @@ xinqing_texts = """生活岂能百般如意
 aliaudio_fpaths = [str(w) for w in sorted(Path(r'../data/samples/aliaudio').glob('*/*.mp3'))]
 
 if __name__ == "__main__":
-
     ## Print some environment information (for debugging purposes)
     print("Running a test of your configuration...\n")
     if torch.cuda.is_available():
@@ -223,22 +223,40 @@ if __name__ == "__main__":
             # The synthesizer works in batch, so you need to put your data in a list or numpy array
 
             print("Creating the spectrogram ...")
-            spec = mellotron_inference(model=mellotron_model, text=text, speaker=speaker)
+            spec, align = mellotron_inference(model=mellotron_model, text=text, speaker=speaker, with_alignment=True)
             # spec, align = synthesize_one(text, speaker=speaker, with_alignment=True,
             #                              hparams=_hparams, encoder_fpath=args.encoder_model_fpath)
             print("Spectrogram shape: {}".format(spec.shape))
-            # print("Alignment shape: {}".format(align.shape))
+            print("Alignment shape: {}".format(align.shape))
+
             ## Generating the waveform
             print("Synthesizing the waveform ...")
             wav = melgan_inference(model=melgan_model, spec=spec)
-            # wav = griffinlim_vocoder(spec)
+            wav_tf = aukit.inv_linear_spectrogram(spec)
             print("Waveform shape: {}".format(wav.shape))
 
             # Save it on the disk
             cur_time = time.strftime('%Y%m%d_%H%M%S')
-            fpath = args.out_dir.joinpath("demo_out_{}.wav".format(cur_time))
+            fpath = args.out_dir.joinpath("demo_out_{}_melgan.wav".format(cur_time))
+            outpath = fpath
             # librosa.output.write_wav(fpath, generated_wav.astype(np.float32), synthesizer.sample_rate)
             aukit.save_wav(wav, fpath, sr=16000)  # save
+
+            fpath = args.out_dir.joinpath("demo_out_{}_griffinlim.wav".format(cur_time))
+            aukit.save_wav(wav, fpath, sr=16000)  # save
+
+            fpath = args.out_dir.joinpath("demo_out_{}_spectrogram.jpg".format(cur_time))
+            # plt.imsave(fpath, spec)
+            plt.pcolor(spec)
+            plt.colorbar()
+            plt.savefig(fpath)
+            plt.close()
+
+            fpath = args.out_dir.joinpath("demo_out_{}_alignment.jpg".format(cur_time))
+            plt.pcolor(align)
+            plt.colorbar()
+            plt.savefig(fpath)
+            plt.close()
 
             txt_path = args.out_dir.joinpath("info_dict.txt".format(cur_time))
             with open(txt_path, 'at', encoding='utf8') as fout:
@@ -247,7 +265,7 @@ if __name__ == "__main__":
                 fout.write('{}\n'.format(out))
 
             num_generated += 1
-            print("\nSaved output as %s\n\n" % fpath)
+            print("\nSaved output as %s\n\n" % outpath)
             if args.play:
                 aukit.play_audio(fpath, sr=16000)
         except Exception as e:

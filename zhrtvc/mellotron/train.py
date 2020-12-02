@@ -2,31 +2,60 @@ import os
 import time
 import argparse
 import math
-import multiprocessing as mp
-from numpy import finfo
-from tqdm import tqdm
-
-import torch
-from .distributed import apply_gradient_allreduce
-import torch.distributed as dist
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import DataLoader
-
-from model import load_model
-from data_utils import TextMelLoader, TextMelCollate
-from loss_function import Tacotron2Loss
-from logger import Tacotron2Logger
-from hparams import create_hparams
-from mellotron.utils import inv_linearspectrogram
-
 from pathlib import Path
-import matplotlib.pyplot as plt
-import aukit
 import json
 import shutil
 import numpy as np
+import multiprocessing as mp
+import argparse
+
+from numpy import finfo
+from tqdm import tqdm
+import aukit
+import torch
+import torch.distributed as dist
+import matplotlib.pyplot as plt
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data import DataLoader
+
+from .distributed import apply_gradient_allreduce
+from .model import load_model
+from .data_utils import TextMelLoader, TextMelCollate
+from .loss_function import Tacotron2Loss
+from .logger import Tacotron2Logger
+from .hparams import create_hparams
+from .utils import inv_linearspectrogram
 
 _device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input_directory', type=str, default=r'../data/samples/metadata.csv',
+                        help='directory to save checkpoints')
+    parser.add_argument('-o', '--output_directory', type=str, default=r"../models/mellotron/samples",
+                        help='directory to save checkpoints')
+    parser.add_argument('-l', '--log_directory', type=str, default='tensorboard',
+                        help='directory to save tensorboard logs')
+    parser.add_argument('-c', '--checkpoint_path', type=str, default=None,
+                        required=False, help='checkpoint path')
+    parser.add_argument('--warm_start', action='store_true',
+                        help='load model weights only, ignore specified layers')
+    parser.add_argument('--n_gpus', type=int, default=1,
+                        required=False, help='number of gpus')
+    parser.add_argument('--rank', type=int, default=0,
+                        required=False, help='rank of current gpu')
+    parser.add_argument('--group_name', type=str, default='group_name',
+                        required=False, help='Distributed group name')
+    parser.add_argument('--hparams', type=str,
+                        default='{"batch_size":4,"iters_per_checkpoint":10,"learning_rate":0.001,"dataloader_num_workers":1}',
+                        required=False, help='comma separated name=value pairs')
+    parser.add_argument("--cuda", type=str, default='-1',
+                        help='设置CUDA_VISIBLE_DEVICES')
+
+    args = parser.parse_args()
+
+    return args
 
 
 def json_dump(obj, path):
@@ -259,7 +288,7 @@ def train(input_directory, output_directory, log_directory, checkpoint_path, war
     json_dump(obj, path)
 
     path = os.path.join(meta_folder, "symbols.json")
-    from text.symbols import symbols
+    from .text.symbols import symbols
     obj = {w: i for i, w in enumerate(symbols)}
     json_dump(obj, path)
 
@@ -277,6 +306,8 @@ def train(input_directory, output_directory, log_directory, checkpoint_path, war
                 learning_rate = _learning_rate
             iteration += 1  # next iteration is iteration + 1
             epoch_offset = max(0, int(iteration / len(train_loader)))
+    checkpoint_folder = os.path.join(output_directory, 'checkpoint')
+    os.makedirs(checkpoint_folder, exist_ok=True)
 
     model.train()
     is_overflow = False
@@ -330,63 +361,11 @@ def train(input_directory, output_directory, log_directory, checkpoint_path, war
                          hparams.batch_size, n_gpus, collate_fn, logger,
                          hparams.distributed_run, rank, outdir=Path(output_directory), hparams=hparams)
                 if rank == 0:
-                    checkpoint_path = os.path.join(
-                        output_directory, "checkpoint-{:06d}.pt".format(iteration))
-                    save_checkpoint(model, optimizer, learning_rate, iteration,
-                                    checkpoint_path)
+                    checkpoint_path = os.path.join(checkpoint_folder, "checkpoint-{:06d}.pt".format(iteration))
+                    save_checkpoint(model, optimizer, learning_rate, iteration, checkpoint_path)
 
             iteration += 1
 
 
 if __name__ == '__main__':
-    try:
-        from setproctitle import setproctitle
-
-        setproctitle('zhrtvc-mellotron-train')
-    except ImportError:
-        pass
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input_directory', type=str, default=r'../../data/samples/metadata.csv',
-                        help='directory to save checkpoints')
-    parser.add_argument('-o', '--output_directory', type=str, default=r"../../models/mellotron/samples",
-                        help='directory to save checkpoints')
-    parser.add_argument('-l', '--log_directory', type=str, default='tensorboard',
-                        help='directory to save tensorboard logs')
-    parser.add_argument('-c', '--checkpoint_path', type=str, default=None,
-                        required=False, help='checkpoint path')
-    parser.add_argument('--warm_start', action='store_true',
-                        help='load model weights only, ignore specified layers')
-    parser.add_argument('--n_gpus', type=int, default=1,
-                        required=False, help='number of gpus')
-    parser.add_argument('--rank', type=int, default=0,
-                        required=False, help='rank of current gpu')
-    parser.add_argument('--group_name', type=str, default='group_name',
-                        required=False, help='Distributed group name')
-    parser.add_argument('--hparams', type=str,
-                        default='{"batch_size":4,"iters_per_checkpoint":10,"learning_rate":0.0001}',
-                        required=False, help='comma separated name=value pairs')
-
-    args = parser.parse_args()
-    hparams = create_hparams(args.hparams)
-
-    torch.backends.cudnn.enabled = hparams.cudnn_enabled
-    torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
-
-    print("FP16 Run:", hparams.fp16_run)
-    print("Dynamic Loss Scaling:", hparams.dynamic_loss_scaling)
-    print("Distributed Run:", hparams.distributed_run)
-    print("cuDNN Enabled:", hparams.cudnn_enabled)
-    print("cuDNN Benchmark:", hparams.cudnn_benchmark)
-
-    meta_folder = os.path.join(args.output_directory, 'metadata')
-    os.makedirs(meta_folder, exist_ok=True)
-
-    path = os.path.join(meta_folder, "args.json")
-    obj = args.__dict__
-    json_dump(obj, path)
-
-    train(args.input_directory, args.output_directory, args.log_directory, args.checkpoint_path,
-          args.warm_start, args.n_gpus, args.rank, args.group_name, hparams)
-    # 命令行执行：
-    # python train.py -i ../../data/SV2TTS/mellotron -o ../../models/mellotron/aliaudio-f06s02 -c ../../models/mellotron/aliaudio-f06s02/checkpoint-040000.pt
+    print(__file__)

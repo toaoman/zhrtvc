@@ -1,12 +1,12 @@
 import random
+import json
 import torch
 from tensorboardX import SummaryWriter
-from plotting_utils import plot_alignment_to_numpy, plot_spectrogram_to_numpy
-from plotting_utils import plot_gate_outputs_to_numpy
 
-import json
-from mellotron.utils import inv_linearspectrogram, default_hparams
-from text import sequence_to_text
+from .plotting_utils import plot_alignment_to_numpy, plot_spectrogram_to_numpy
+from .plotting_utils import plot_gate_outputs_to_numpy
+from .utils import inv_linearspectrogram, default_hparams
+from .text import sequence_to_text
 
 
 class Tacotron2Logger(SummaryWriter):

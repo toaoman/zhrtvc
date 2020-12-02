@@ -10,7 +10,7 @@ aukit>=1.4.3
 librosa
 pydub
 visdom
-webrtcvad
+webrtcvad_wheels
 numpy
 scipy
 multiprocess
