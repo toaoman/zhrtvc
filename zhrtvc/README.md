@@ -16,7 +16,7 @@ sudo docker build -t ubuntu/zhrtvc .
 
 # 打开交互环境的容器
 # 用-v参数设置挂载数据路径
-sudo docker run -it -v ../:/zhrtvc ubuntu/zhrtvc
+sudo docker run -it -v [current absulte dir path]:/home/zhrtvc ubuntu/zhrtvc
 ```
 
 ### 语音合成器synthesizer
