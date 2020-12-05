@@ -1,4 +1,5 @@
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pylab as plt
 import numpy as np
@@ -59,3 +60,23 @@ def plot_gate_outputs_to_numpy(gate_targets, gate_outputs):
     data = save_figure_to_numpy(fig)
     plt.close()
     return data
+
+
+def plot_mel_alignment_gate_audio(target, mel, alignment, gate, audio, figsize=(16, 16)):
+    fig, axes = plt.subplots(5, 1, figsize=figsize)
+    axes = axes.flatten()
+    axes[0].imshow(target, aspect='auto', origin='bottom', interpolation='none')
+    axes[1].imshow(mel, aspect='auto', origin='bottom', interpolation='none')
+    axes[2].imshow(alignment, aspect='auto', origin='bottom', interpolation='none')
+    axes[3].scatter(range(len(gate)), gate, alpha=0.5, color='red', marker='.', s=1)
+    axes[3].set_xlim(0, len(gate))
+    axes[4].scatter(range(len(audio)), audio, alpha=0.5, color='blue', marker='.', s=1)
+    axes[4].set_xlim(0, len(audio))
+
+    axes[0].set_title("target")
+    axes[1].set_title("mel")
+    axes[2].set_title("alignment")
+    axes[3].set_title("gate")
+    axes[4].set_title("audio")
+
+    plt.tight_layout()

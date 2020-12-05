@@ -26,13 +26,14 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         ################################
         # Data Parameters             #
         ################################
-        train_mode='train-f04',
-        # f01:用基频，把prenet_f0_dim设为1。
-        # f02:用基频均值填充，把prenet_f0_dim设为1。
-        # f03:用零向量代替基频，把prenet_f0_dim设为1。
-        # f04:不用基频，把prenet_f0_dim设为0。
-        # f05s02:用speaker_id等距分配代替基频，把prenet_f0_dim设为1，speaker_id用0表示。
-        # f06s02:用语音的embed向量代替基频，prenet_f0_dim设置为8，speaker_id用0表示。
+        train_mode='train-gst',
+        # f01:用基频，prenet_f0_dim=1。
+        # f02:用基频均值填充，prenet_f0_dim=1。
+        # f03:用零向量代替基频，prenet_f0_dim=1。
+        # f04:不用基频，prenet_f0_dim=0。
+        # f05s02:用speaker_id等距分配代替基频，speaker_id用0表示，prenet_f0_dim=0。
+        # f06s02:用语音的embed向量代替，基频speaker_id用0表示，prenet_f0_dim=8。
+        # gst:用gst模式，把speaker_id用0表示，prenet_f0_dim=0, token_embedding_size=64 * level, with_gst=True。
 
         # training_files=r"../../data/SV2TTS/mellotron/samples_ssml/train.txt",
         # 文件一行记录一个语音信息，每行的数据结构：数据文件夹名\t语音源文件\t文本\t说话人名称\n，样例如下：
@@ -47,13 +48,13 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         # Audio Parameters             #
         ################################
         max_wav_value=32768.0,
-        sampling_rate=hparams_griffinlim.sample_rate,  # 16000,  # 22050,
-        filter_length=hparams_griffinlim.n_fft,  # 1024,
-        hop_length=hparams_griffinlim.hop_size,  # 256,
-        win_length=hparams_griffinlim.win_size,  # 1024,
-        n_mel_channels=401,  # 80,
+        sampling_rate=22050,  # hparams_griffinlim.sample_rate,  # 16000,  # 22050,
+        filter_length=1024,  # hparams_griffinlim.n_fft,  # 1024,
+        hop_length=256,  # hparams_griffinlim.hop_size,  # 256,
+        win_length=1024,  # hparams_griffinlim.win_size,  # 1024,
+        n_mel_channels=80,  # 401,  # 80,
         mel_fmin=0.0,
-        mel_fmax=8000.0,
+        mel_fmax=None,  # 8000.0,
         f0_min=80,
         f0_max=880,
         harm_thresh=0.25,
@@ -102,7 +103,7 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         speaker_embedding_dim=16 * level,  # 32 * level,  # 128,
 
         # Reference encoder
-        with_gst=False,  # True,
+        with_gst=True,  # True,
         ref_enc_filters=[8 * level, 8 * level, 16 * level, 16 * level, 32 * level, 32 * level],
         # [32, 32, 64, 64, 128, 128],
         ref_enc_size=[3, 3],
@@ -111,7 +112,7 @@ def create_hparams(hparams_string=None, verbose=False, level=2):
         ref_enc_gru_size=32 * level,  # 128,
 
         # Style Token Layer
-        token_embedding_size=0,  # 64 * level,  # 256,  # 如果with_gst=False，则手动改为0。
+        token_embedding_size=64 * level,  # 64 * level,  # 256,  # 如果with_gst=False，则手动改为0。
         token_num=10,
         num_heads=8,
 

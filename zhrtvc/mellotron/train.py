@@ -8,6 +8,7 @@ import shutil
 import numpy as np
 import multiprocessing as mp
 import argparse
+import yaml
 
 from numpy import finfo
 from tqdm import tqdm
@@ -25,6 +26,8 @@ from .loss_function import Tacotron2Loss
 from .logger import Tacotron2Logger
 from .hparams import create_hparams
 from .utils import inv_linearspectrogram
+from .plotting_utils import plot_mel_alignment_gate_audio
+from .audio_processing import griffin_lim, dynamic_range_decompression
 
 _device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -190,18 +193,28 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
             # torch.Size([4, 439])
             # torch.Size([4, 439, 114])
 
-            mel_outputs, mel_outputs_2, gate_outputs, alignments = y_pred
+            mel_outputs, mel_outputs_postnet, gate_outputs, alignments = y_pred
             loss = criterion(y_pred, y)
             if outdir and save_flag:
                 curdir = outdir.joinpath('validation', f'{iteration:06d}-{loss.data.cpu().numpy():.4f}')
                 curdir.mkdir(exist_ok=True, parents=True)
-                plt.imsave(curdir.joinpath('spectrogram_pred.png'), mel_outputs[0].cpu().numpy())
-                plt.imsave(curdir.joinpath('spectrogram_true.png'), y[0][0].cpu().numpy())
-                plt.imsave(curdir.joinpath('alignment_pred.png'), alignments[0].cpu().numpy().T)
-                wav_output = inv_linearspectrogram(mel_outputs[0].cpu().numpy())
+
+                wav_outputs = valset.stft.griffin_lim(mel_outputs_postnet)
+                wav_output = wav_outputs[0].cpu().numpy()
                 aukit.save_wav(wav_output, curdir.joinpath('griffinlim_pred.wav'), sr=hparams.sampling_rate)
-                wav_output = inv_linearspectrogram(y[0][0].cpu().numpy())
-                aukit.save_wav(wav_output, curdir.joinpath('griffinlim_true.wav'), sr=hparams.sampling_rate)
+
+                wav_inputs = valset.stft.griffin_lim(y[0])
+                wav_input = wav_inputs[0].cpu().numpy()
+                aukit.save_wav(wav_input, curdir.joinpath('griffinlim_true.wav'), sr=hparams.sampling_rate)
+
+                plot_mel_alignment_gate_audio(target=y[0][0].cpu().numpy(),
+                                              mel=mel_outputs[0].cpu().numpy(),
+                                              alignment=alignments[0].cpu().numpy().T,
+                                              gate=torch.sigmoid(gate_outputs[0]).cpu().numpy(),
+                                              audio=wav_output[::hparams.sampling_rate // 1000])
+                plt.savefig(curdir.joinpath('figure.png'))
+                plt.close()
+
                 save_flag = False
 
             if distributed_run:
@@ -282,15 +295,18 @@ def train(input_directory, output_directory, log_directory, checkpoint_path, war
     path = os.path.join(meta_folder, "speakers.json")
     obj = dict(valset.speaker_ids)
     json_dump(obj, path)
+    yaml.dump(obj, open(os.path.join(meta_folder, "speakers.yml"), 'wt', encoding='utf8'))
 
     path = os.path.join(meta_folder, "hparams.json")
     obj = {k: v for k, v in hparams.items()}
     json_dump(obj, path)
+    yaml.dump(obj, open(os.path.join(meta_folder, "hparams.yml"), 'wt', encoding='utf8'))
 
     path = os.path.join(meta_folder, "symbols.json")
     from .text.symbols import symbols
     obj = {w: i for i, w in enumerate(symbols)}
     json_dump(obj, path)
+    yaml.dump(obj, open(os.path.join(meta_folder, "symbols.yml"), 'wt', encoding='utf8'))
 
     # Load checkpoint if one exists
     iteration = 0

@@ -22,7 +22,7 @@ import shutil
 import json
 
 import aukit
-from toolbox.sentence import xinqing_texts
+from utils.texthelper import xinqing_texts
 
 example_texts = xinqing_texts
 

@@ -131,6 +131,9 @@ def transform_data_train(hparams, text_data, mel_data, speaker_data, f0_data, em
         embed = embed if embed.shape[0] == hparams.prenet_f0_dim else embed[:hparams.prenet_f0_dim]
         f0 = np.tile(embed, (mel.shape[1], 1)).T
         speaker = speaker * 0
+    elif mode == 'gst':
+        f0 = None
+        speaker = speaker * 0
     else:
         # 默认：不用f0。
         f0 = None
@@ -260,14 +263,14 @@ class TextMelLoader(torch.utils.data.Dataset):
     def get_mel_and_f0(self, filepath):
         audio, sampling_rate = load_wav_to_torch(filepath)
         audio_norm = audio / self.max_wav_value
-        # if sampling_rate != self.stft.sampling_rate:
-        #     raise ValueError("{} SR doesn't match target {} SR".format(
-        #         sampling_rate, self.stft.sampling_rate))
-        # audio_norm = audio_norm.unsqueeze(0)
-        # melspec = self.stft.mel_spectrogram(audio_norm)
-        # melspec = torch.squeeze(melspec, 0)
+        if sampling_rate != self.stft.sampling_rate:
+            raise ValueError("{} SR doesn't match target {} SR".format(
+                sampling_rate, self.stft.sampling_rate))
+        audio_norm = audio_norm.unsqueeze(0)
+        melspec = self.stft.mel_spectrogram(audio_norm)
+        melspec = torch.squeeze(melspec, 0)
 
-        melspec = linearspectrogram_torch(audio_norm)  # 用aukit的频谱生成方案
+        # melspec = linearspectrogram_torch(audio_norm)  # 用aukit的频谱生成方案
 
         f0 = self.get_f0(audio.cpu().numpy(), sampling_rate,
                          self.filter_length, self.hop_length, self.f0_min,

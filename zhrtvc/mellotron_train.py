@@ -1,7 +1,6 @@
 import sys
 import os
-
-# sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'mellotron'))
+import yaml
 
 import torch
 
@@ -37,6 +36,12 @@ if __name__ == '__main__':
     path = os.path.join(meta_folder, "args.json")
     obj = args.__dict__
     json_dump(obj, path)
+
+    print('{}\nargs:'.format('-' * 50))
+    print(yaml.dump(args.__dict__))
+
+    print('{}\nhparams:'.format('-' * 50))
+    print(yaml.dump({k: v for k, v in hparams.items()}))
 
     train(args.input_directory, args.output_directory, args.log_directory, args.checkpoint_path,
           args.warm_start, args.n_gpus, args.rank, args.group_name, hparams)

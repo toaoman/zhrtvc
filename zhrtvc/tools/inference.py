@@ -339,6 +339,22 @@ def singing_voice_v2():
     # write("audio_stereo.wav", hparams.sampling_rate, audio_stereo)
     # ipd.Audio([audio_stereo[:, 0], audio_stereo[:, 1]], rate=hparams.sampling_rate)
 
+def gf():
+    # magnitudes = magnitudes.data
+    # mel_output = torch.matmul(self.mel_basis, magnitudes)
+    # mel_output = self.spectral_normalize(mel_output)
+    mel = y[0]
+    mel_de = dynamic_range_decompression(mel)[0]
+    # torch.Size([80, 513]) torch.Size([4, 80, 402])
+
+    mb_shape = valset.stft.mel_basis.shape
+    mel_basis_ = torch.inverse(
+        torch.cat((valset.stft.mel_basis, torch.rand(mb_shape[1] - mb_shape[0], mb_shape[1]) * 1e-9), 0))
+    mel_de = torch.cat((mel_de.cpu(), torch.rand(mb_shape[1] - mb_shape[0], mel_de.shape[1]) * 1e-9), 0)
+    magnitudes = torch.matmul(mel_basis_, mel_de)
+    magnitudes = torch.unsqueeze(magnitudes, 0)
+    wav_output = griffin_lim(magnitudes, stft_fn=valset.stft.stft_fn, n_iters=30)
+
 
 if __name__ == "__main__":
     print(__file__)

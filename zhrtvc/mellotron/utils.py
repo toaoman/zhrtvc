@@ -17,6 +17,29 @@ from aukit.audio_griffinlim import librosa_pad_lr
 from aukit.audio_griffinlim import default_hparams
 
 
+
+_sr = 22050
+my_hp = {
+    "n_fft": 1024,  # 800
+    "hop_size": 256,  # 200
+    "win_size": 1024,  # 800
+    "sample_rate": _sr,  # 16000
+    "fmin": 0,  # 55
+    "fmax": _sr // 2,  # 7600
+    "preemphasize": False,  # True
+    'symmetric_mels': True,  # True
+    'signal_normalization': False,  # True
+    'allow_clipping_in_normalization': False,  # True
+    'ref_level_db': 0,  # 20
+    'center': False,  # True
+    '__file__': __file__
+}
+
+synthesizer_hparams = {k: v for k, v in default_hparams.items()}
+synthesizer_hparams = {**synthesizer_hparams, **my_hp}
+synthesizer_hparams = Dict2Obj(synthesizer_hparams)
+
+
 def melspectrogram_torch(wav, hparams=None):
     """mel_output: torch.FloatTensor of shape (B, n_mel_channels, T)"""
     mel = melspectrogram(wav, hparams)
@@ -32,11 +55,11 @@ def linearspectrogram_torch(wav, hparams=None):
 
 
 def inv_melspectrogram(spec):
-    return inv_mel_spectrogram(spec)
+    return inv_mel_spectrogram(spec, hparams=synthesizer_hparams)
 
 
 def inv_linearspectrogram(spec):
-    return inv_linear_spectrogram(spec)
+    return inv_mel_spectrogram(spec, hparams=synthesizer_hparams)
 
 
 ########################### 用aukit的默认参数 #############################
@@ -45,7 +68,7 @@ _device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 def read(fpath):
-    wav, sr = librosa.load(fpath, sr=None)
+    wav, sr = librosa.load(fpath, sr=22050)
     out = np.clip(wav, -1, 1) * (2 ** 15 - 1)
     return sr, out.astype(int)
 

@@ -60,7 +60,7 @@ _device = get_default_device()
 def main():
     vocoder = MelVocoder(args.load_path, github=args.mode == 'default', args_path=args.args_path,
                          device=_device, mode=args.mode)
-    if args.save_path:
+    if args.save_model_path:
         save_model(vocoder, args.save_model_path)
     args.save_path.mkdir(exist_ok=True, parents=True)
 
