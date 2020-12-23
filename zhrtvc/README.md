@@ -1,4 +1,4 @@
-# 中文语音克隆
+# 中文语音克隆(所有百度盘上的文件已转存到bfdght89ih20@outlook.com)
 
 ## 使用指引
 主要做synthesizer的部分，encoder和vocoder都用publish的模型。
