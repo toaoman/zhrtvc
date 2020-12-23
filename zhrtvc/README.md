@@ -1,4 +1,4 @@
-# 中文语音克隆(所有百度盘上的文件已转存到bfdght89ih20@******k.com)
+# 中文语音克隆
 
 ## 使用指引
 主要做synthesizer的部分，encoder和vocoder都用publish的模型。
@@ -7,7 +7,7 @@
 
 ### 容器环境Docker
 镜像基于ubuntu18.04，python环境是python3.7版本，用anaconda的环境。
-必要依赖已经安装好，TensorFlow和Torch可以根据自己的实际情况安装。
+必要依赖已经安装好，TensorFlow和Torch可以根据自己的实际情况安装。(所有百度盘上的文件已转存到bfdght89ih20@******k.com)
 
 ```
 # 执行路径为Dockerfile文件所在目录的路径
